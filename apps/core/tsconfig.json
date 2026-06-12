@@ -1,0 +1,15 @@
+
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "checkJs": true,
+    "allowJs": true,
+    "maxNodeModuleJsDepth": 10,
+    "target": "ESNext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true
+  },
+  "include": ["*", "**/*"],
+  "exclude": ["*.json"]
+}

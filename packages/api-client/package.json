@@ -1,0 +1,12 @@
+{
+  "name": "@mugs/api-client",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./types": "./src/types.js"
+  },
+  "scripts": {},
+  "dependencies": {}
+}

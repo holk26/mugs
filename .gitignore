@@ -22,3 +22,17 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# SQLite data and uploads
+**/data.sqlite
+**/storage/
+
+# superpowers session folder
+.superpowers/
+
+# docker volumes
+docker-volumes/
+
+# internal planning docs
+docs/superpowers/
+

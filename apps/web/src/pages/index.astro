@@ -1,0 +1,39 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { createClient, getProducts } from '@mugs/api-client';
+
+const baseUrl = import.meta.env.CORE_API_URL || 'http://localhost:8080';
+const client = createClient(baseUrl);
+
+let products = [];
+let error = null;
+
+try {
+  const response = await getProducts(client, { limit: 10, expand: ['medias'] });
+  products = response.data || [];
+} catch (err) {
+  error = err.message;
+}
+---
+
+<Layout>
+  <main style="padding: 2rem; font-family: system-ui, sans-serif;">
+    <h1>Mugs Store</h1>
+    <p>Conectado a Storecraft en {baseUrl}</p>
+
+    {error && <p style="color: red;">Error: {error}</p>}
+
+    <h2>Productos</h2>
+    {products.length === 0 && !error && <p>No hay productos todavía.</p>}
+
+    <ul style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; list-style: none; padding: 0;">
+      {products.map((product) => (
+        <li style="border: 1px solid #ddd; border-radius: 8px; padding: 1rem;">
+          <h3>{product.title}</h3>
+          <p>{product.description || 'Sin descripción'}</p>
+          <p><strong>${product.price}</strong></p>
+        </li>
+      ))}
+    </ul>
+  </main>
+</Layout>
