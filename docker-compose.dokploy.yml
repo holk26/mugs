@@ -38,8 +38,6 @@ services:
       - CORE_API_URL=http://core:8000
       - HOST=0.0.0.0
       - PORT=4321
-    expose:
-      - "4321"
     depends_on:
       - core
     networks:
@@ -47,12 +45,11 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=dokploy-network"
-      - "traefik.http.routers.mugs-web-astro.rule=Host(`mugs.store.app.moonsbow.com`)"
-      - "traefik.http.routers.mugs-web-astro.entrypoints=websecure"
-      - "traefik.http.routers.mugs-web-astro.tls.certResolver=letsencrypt"
-      - "traefik.http.routers.mugs-web-astro.service=mugs-web-astro-service"
-      - "traefik.http.services.mugs-web-astro-service.loadbalancer.server.port=4321"
+      - "traefik.http.routers.mugs-web.rule=Host(`mugs.store.app.moonsbow.com`)"
+      - "traefik.http.routers.mugs-web.entrypoints=websecure"
+      - "traefik.http.routers.mugs-web.tls.certResolver=letsencrypt"
+      - "traefik.http.routers.mugs-web.service=mugs-web-service"
+      - "traefik.http.services.mugs-web-service.loadbalancer.server.port=4321"
 
 volumes:
   core-data:
