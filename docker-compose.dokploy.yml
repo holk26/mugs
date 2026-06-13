@@ -18,8 +18,6 @@ services:
     volumes:
       - core-data:/usr/src/app/data
       - core-storage:/usr/src/app/storage
-    networks:
-      - dokploy-network
     restart: unless-stopped
 
   web:
@@ -34,26 +32,8 @@ services:
       - "4321"
     depends_on:
       - core
-    networks:
-      - dokploy-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=dokploy-network"
-      - "traefik.http.routers.mugs-web.rule=Host(`mugs.store.app.moonsbow.com`)"
-      - "traefik.http.routers.mugs-web.entrypoints=websecure"
-      - "traefik.http.routers.mugs-web.tls=true"
-      - "traefik.http.routers.mugs-web.tls.certresolver=letsencrypt"
-      - "traefik.http.services.mugs-web.loadbalancer.server.port=4321"
-      - "traefik.http.middlewares.mugs-web-redirect.redirectscheme.scheme=https"
-      - "traefik.http.routers.mugs-web-http.rule=Host(`mugs.store.app.moonsbow.com`)"
-      - "traefik.http.routers.mugs-web-http.entrypoints=web"
-      - "traefik.http.routers.mugs-web-http.middlewares=mugs-web-redirect"
     restart: unless-stopped
 
 volumes:
   core-data:
   core-storage:
-
-networks:
-  dokploy-network:
-    external: true
