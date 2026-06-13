@@ -20,8 +20,12 @@ services:
       - core-data:/usr/src/app/data
       - core-storage:/usr/src/app/storage
     restart: unless-stopped
+    networks:
+      - default
+      - dokploy-network
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
       - "traefik.http.routers.diego-store.rule=Host(`diego.store.app.moonsbow.com`)"
       - "traefik.http.routers.diego-store.entrypoints=websecure"
       - "traefik.http.routers.diego-store.tls.certResolver=letsencrypt"
@@ -39,8 +43,12 @@ services:
     depends_on:
       - core
     restart: unless-stopped
+    networks:
+      - default
+      - dokploy-network
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
       - "traefik.http.routers.mugs-web.rule=Host(`mugs.store.app.moonsbow.com`)"
       - "traefik.http.routers.mugs-web.entrypoints=websecure"
       - "traefik.http.routers.mugs-web.tls.certResolver=letsencrypt"
@@ -50,3 +58,7 @@ services:
 volumes:
   core-data:
   core-storage:
+
+networks:
+  dokploy-network:
+    external: true
