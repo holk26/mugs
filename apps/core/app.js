@@ -12,7 +12,7 @@ export const app = new App({
 })
   .withPlatform(new NodePlatform({}))
   .withDatabase(new SQLite({
-    filepath: "data.sqlite",
+    filepath: "data/data.sqlite",
   }))
   .withStorage(new NodeLocalStorage("storage"))
   .withExtensions({

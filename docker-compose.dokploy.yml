@@ -1,0 +1,45 @@
+services:
+  core:
+    build:
+      context: ./apps/core
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+      - SC_AUTH_SECRET_ACCESS_TOKEN=${SC_AUTH_SECRET_ACCESS_TOKEN}
+      - SC_AUTH_SECRET_REFRESH_TOKEN=${SC_AUTH_SECRET_REFRESH_TOKEN}
+      - SC_AUTH_SECRET_FORGOT_PASSWORD_TOKEN=${SC_AUTH_SECRET_FORGOT_PASSWORD_TOKEN}
+      - SC_AUTH_SECRET_CONFIRM_EMAIL_TOKEN=${SC_AUTH_SECRET_CONFIRM_EMAIL_TOKEN}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - LIBSQL_VECTOR_URL=${LIBSQL_VECTOR_URL:-file:vector-local.db}
+      - LIBSQL_URL=${LIBSQL_URL:-file:data.db}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+    volumes:
+      - core-data:/usr/src/app/data
+      - core-storage:/usr/src/app/storage
+    networks:
+      - mugs
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+    environment:
+      - CORE_API_URL=http://core:8000
+      - HOST=0.0.0.0
+      - PORT=4321
+    depends_on:
+      - core
+    networks:
+      - mugs
+    restart: unless-stopped
+
+volumes:
+  core-data:
+  core-storage:
+
+networks:
+  mugs:
+    driver: bridge

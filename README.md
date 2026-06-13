@@ -50,16 +50,20 @@ pnpm --filter @mugs/web dev --host
 - Referencia de la API: http://localhost:8080/api
 - Tienda Astro: http://localhost:4321
 
-## Docker Compose
+## Docker Compose local
 
 ```bash
-docker compose up --build
+docker compose -f docker-compose.yml up --build
 ```
 
 - Core: http://localhost:8080
 - Web: http://localhost:4321
 
 > Recuerda crear `apps/core/.env` antes de levantar los contenedores.
+
+## Dokploy (producción)
+
+Se usa `docker-compose.dokploy.yml`. Define las variables de entorno en el panel de Dokploy para el compose service.
 
 ## Build de producción (Astro)
 

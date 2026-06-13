@@ -12,7 +12,8 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^6.4.4",
-    "@mugs/api-client": "workspace:*"
+    "@astrojs/node": "^10.1.4",
+    "@mugs/api-client": "workspace:*",
+    "astro": "^6.4.4"
   }
 }
