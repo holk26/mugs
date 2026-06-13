@@ -18,6 +18,9 @@ services:
     volumes:
       - core-data:/usr/src/app/data
       - core-storage:/usr/src/app/storage
+    networks:
+      - default
+      - dokploy-network
     restart: unless-stopped
 
   web:
@@ -28,10 +31,22 @@ services:
       - CORE_API_URL=http://core:8000
       - HOST=0.0.0.0
       - PORT=4321
+    expose:
+      - "4321"
     depends_on:
       - core
+    networks:
+      - default
+      - dokploy-network
+    labels:
+      - "traefik.docker.network=dokploy-network"
     restart: unless-stopped
 
 volumes:
   core-data:
   core-storage:
+
+networks:
+  default:
+  dokploy-network:
+    external: true
