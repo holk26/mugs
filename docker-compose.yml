@@ -2,35 +2,52 @@ services:
   core:
     build:
       context: ./apps/core
+      dockerfile: Dockerfile
     container_name: mugs-core
     env_file:
       - ./apps/core/.env
+    environment:
+      - PORT=8080
     volumes:
-      - ./apps/core/data:/usr/src/app/data
-      - ./apps/core/storage:/usr/src/app/storage
-    ports:
-      - "8080:8080"
+      - core-data:/usr/src/app/data
+      - core-storage:/usr/src/app/storage
     networks:
-      - mugs
+      - dokploy-network
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.diego-store.rule=Host(`diego.store.app.moonsbow.com`)"
+      - "traefik.http.routers.diego-store.entrypoints=websecure"
+      - "traefik.http.routers.diego-store.tls.certResolver=letsencrypt"
+      - "traefik.http.routers.diego-store.service=diego-store-service"
+      - "traefik.http.services.diego-store-service.loadbalancer.server.port=8080"
 
   web:
     build:
       context: .
-      dockerfile: ./apps/web/Dockerfile
+      dockerfile: Dockerfile
     container_name: mugs-web
     environment:
       - CORE_API_URL=http://core:8080
       - HOST=0.0.0.0
       - PORT=4321
-    ports:
-      - "4321:4321"
+    networks:
+      - dokploy-network
     depends_on:
       - core
-    networks:
-      - mugs
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mugs-web.rule=Host(`mugs.store.app.moonsbow.com`)"
+      - "traefik.http.routers.mugs-web.entrypoints=websecure"
+      - "traefik.http.routers.mugs-web.tls.certResolver=letsencrypt"
+      - "traefik.http.routers.mugs-web.service=mugs-web-service"
+      - "traefik.http.services.mugs-web-service.loadbalancer.server.port=4321"
+
+volumes:
+  core-data:
+  core-storage:
 
 networks:
-  mugs:
-    driver: bridge
+  dokploy-network:
+    external: true
