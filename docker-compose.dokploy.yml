@@ -19,8 +19,6 @@ services:
     volumes:
       - core-data:/usr/src/app/data
       - core-storage:/usr/src/app/storage
-    networks:
-      - dokploy-network
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
@@ -37,11 +35,9 @@ services:
     environment:
       - CORE_API_URL=http://core:8000
       - HOST=0.0.0.0
-      - PORT=3000
+      - PORT=4321
     depends_on:
       - core
-    networks:
-      - dokploy-network
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
@@ -49,12 +45,8 @@ services:
       - "traefik.http.routers.mugs-web.entrypoints=websecure"
       - "traefik.http.routers.mugs-web.tls.certResolver=letsencrypt"
       - "traefik.http.routers.mugs-web.service=mugs-web-service"
-      - "traefik.http.services.mugs-web-service.loadbalancer.server.port=3000"
+      - "traefik.http.services.mugs-web-service.loadbalancer.server.port=4321"
 
 volumes:
   core-data:
   core-storage:
-
-networks:
-  dokploy-network:
-    external: true
