@@ -45,6 +45,14 @@ services:
     restart: unless-stopped
     networks:
       - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
+      - "traefik.http.routers.mugs-store.rule=Host(`mugs.store.app.moonsbow.com`)"
+      - "traefik.http.routers.mugs-store.entrypoints=websecure"
+      - "traefik.http.routers.mugs-store.tls.certResolver=letsencrypt"
+      - "traefik.http.routers.mugs-store.service=mugs-store-service"
+      - "traefik.http.services.mugs-store-service.loadbalancer.server.port=4321"
 
 volumes:
   core-data:
