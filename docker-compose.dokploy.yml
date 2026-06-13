@@ -18,8 +18,6 @@ services:
     volumes:
       - core-data:/usr/src/app/data
       - core-storage:/usr/src/app/storage
-    networks:
-      - mugs
     restart: unless-stopped
 
   web:
@@ -32,14 +30,8 @@ services:
       - PORT=4321
     depends_on:
       - core
-    networks:
-      - mugs
     restart: unless-stopped
 
 volumes:
   core-data:
   core-storage:
-
-networks:
-  mugs:
-    driver: bridge
