@@ -21,7 +21,6 @@ services:
       - core-storage:/usr/src/app/storage
     restart: unless-stopped
     networks:
-      - default
       - dokploy-network
     labels:
       - "traefik.enable=true"
@@ -44,7 +43,6 @@ services:
       - core
     restart: unless-stopped
     networks:
-      - default
       - dokploy-network
     labels:
       - "traefik.enable=true"
