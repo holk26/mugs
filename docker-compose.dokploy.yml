@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
     environment:
       - NODE_ENV=production
+      - HOST=0.0.0.0
       - PORT=8000
       - SC_AUTH_SECRET_ACCESS_TOKEN=${SC_AUTH_SECRET_ACCESS_TOKEN}
       - SC_AUTH_SECRET_REFRESH_TOKEN=${SC_AUTH_SECRET_REFRESH_TOKEN}
@@ -44,14 +45,6 @@ services:
     restart: unless-stopped
     networks:
       - dokploy-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=dokploy-network"
-      - "traefik.http.routers.mugs-web.rule=Host(`mugs.store.app.moonsbow.com`)"
-      - "traefik.http.routers.mugs-web.entrypoints=websecure"
-      - "traefik.http.routers.mugs-web.tls.certResolver=letsencrypt"
-      - "traefik.http.routers.mugs-web.service=mugs-web-service"
-      - "traefik.http.services.mugs-web-service.loadbalancer.server.port=4321"
 
 volumes:
   core-data:
