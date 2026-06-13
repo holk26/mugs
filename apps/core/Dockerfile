@@ -10,5 +10,7 @@ RUN npm ci
 
 COPY . .
 
+RUN mkdir -p data storage
+
 EXPOSE 8080
 CMD npm run migrate && node index.js
