@@ -19,7 +19,6 @@ services:
       - core-data:/usr/src/app/data
       - core-storage:/usr/src/app/storage
     networks:
-      - default
       - dokploy-network
     restart: unless-stopped
 
@@ -36,7 +35,6 @@ services:
     depends_on:
       - core
     networks:
-      - default
       - dokploy-network
     labels:
       - "traefik.enable=true"
@@ -57,6 +55,5 @@ volumes:
   core-storage:
 
 networks:
-  default:
   dokploy-network:
     external: true
