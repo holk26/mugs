@@ -1,16 +1,18 @@
-# Dockerfile para storecraft-core-app
 FROM node:20-alpine
 
 WORKDIR /usr/src/app
 
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ \
+  && corepack enable \
+  && corepack prepare pnpm@latest --activate
 
-COPY package*.json ./
-RUN npm ci
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps/core/package.json ./apps/core/package.json
+COPY packages/printful/package.json ./packages/printful/package.json
+
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-RUN mkdir -p data storage
-
-EXPOSE 8000
-CMD npm run migrate && node index.js
+EXPOSE 8080
+CMD ["sh", "-c", "node apps/core/migrate.js && node apps/core/index.js"]

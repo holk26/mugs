@@ -3,6 +3,7 @@ import { SQLite } from "@storecraft/database-sqlite"
 import { NodeLocalStorage } from "@storecraft/core/storage/node"
 import { App } from "@storecraft/core"
 import { PostmanExtension } from "@storecraft/core/extensions/postman"
+import { PrintfulExtension } from "@mugs/printful"
 
 export const app = new App({
   general_store_name: "core",
@@ -17,5 +18,6 @@ export const app = new App({
   .withStorage(new NodeLocalStorage("storage"))
   .withExtensions({
     postman: new PostmanExtension(),
+    printful: new PrintfulExtension(),
   })
   .init()
