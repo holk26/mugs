@@ -5,7 +5,19 @@ services:
       dockerfile: Dockerfile
     container_name: mugs-core
     environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
       - PORT=8080
+      - SC_AUTH_SECRET_ACCESS_TOKEN=${SC_AUTH_SECRET_ACCESS_TOKEN}
+      - SC_AUTH_SECRET_REFRESH_TOKEN=${SC_AUTH_SECRET_REFRESH_TOKEN}
+      - SC_AUTH_SECRET_FORGOT_PASSWORD_TOKEN=${SC_AUTH_SECRET_FORGOT_PASSWORD_TOKEN}
+      - SC_AUTH_SECRET_CONFIRM_EMAIL_TOKEN=${SC_AUTH_SECRET_CONFIRM_EMAIL_TOKEN}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - LIBSQL_VECTOR_URL=${LIBSQL_VECTOR_URL:-file:vector-local.db}
+      - LIBSQL_URL=${LIBSQL_URL:-file:data.db}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
     volumes:
       - core-data:/usr/src/app/data
       - core-storage:/usr/src/app/storage
