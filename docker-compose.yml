@@ -4,8 +4,6 @@ services:
       context: ./apps/core
       dockerfile: Dockerfile
     container_name: mugs-core
-    env_file:
-      - ./apps/core/.env
     environment:
       - PORT=8080
     volumes:
