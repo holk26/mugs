@@ -26,16 +26,19 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.diego-store.rule=Host(`diego.store.app.moonsbow.com`)"
-      - "traefik.http.routers.diego-store.entrypoints=websecure"
-      - "traefik.http.routers.diego-store.tls.certResolver=letsencrypt"
-      - "traefik.http.routers.diego-store.service=diego-store-service"
-      - "traefik.http.services.diego-store-service.loadbalancer.server.port=8080"
+      - "traefik.docker.network=dokploy-network"
+      - "traefik.http.routers.backstore.rule=Host(`backshop.app.moonsbow.com`)"
+      - "traefik.http.routers.backstore.entrypoints=websecure"
+      - "traefik.http.routers.backstore.tls.certResolver=letsencrypt"
+      - "traefik.http.routers.backstore.service=backstore-service"
+      - "traefik.http.services.backstore-service.loadbalancer.server.port=8080"
 
   web:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - CORE_API_URL=http://core:8080
     container_name: mugs-web
     environment:
       - CORE_API_URL=http://core:8080
@@ -48,7 +51,8 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.mugs-web.rule=Host(`mugs.store.app.moonsbow.com`)"
+      - "traefik.docker.network=dokploy-network"
+      - "traefik.http.routers.mugs-web.rule=Host(`mugs.app.moonsbow.com`)"
       - "traefik.http.routers.mugs-web.entrypoints=websecure"
       - "traefik.http.routers.mugs-web.tls.certResolver=letsencrypt"
       - "traefik.http.routers.mugs-web.service=mugs-web-service"

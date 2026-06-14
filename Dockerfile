@@ -18,8 +18,9 @@ RUN pnpm install --frozen-lockfile
 # Copiar todo el código fuente
 COPY . .
 
-# URL base de la API (runtime)
-ENV CORE_API_URL=https://diego.store.app.moonsbow.com
+# URL base de la API (build-time y runtime)
+ARG CORE_API_URL=http://core:8080
+ENV CORE_API_URL=${CORE_API_URL}
 ENV HOST=0.0.0.0
 ENV PORT=4321
 
