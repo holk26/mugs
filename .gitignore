@@ -33,6 +33,9 @@ pnpm-debug.log*
 # docker volumes
 docker-volumes/
 
+# git worktrees
+.worktrees/
+
 # internal planning docs
 docs/superpowers/
 
