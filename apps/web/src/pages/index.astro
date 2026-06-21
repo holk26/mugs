@@ -1,16 +1,16 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { createClient, getProducts } from '@mugs/api-client';
 
-const baseUrl = import.meta.env.CORE_API_URL || 'http://localhost:8080';
-const client = createClient(baseUrl);
+const baseUrl = import.meta.env.DJANGO_API_URL || 'http://localhost:8080';
 
 let products = [];
 let error = null;
 
 try {
-  const response = await getProducts(client, { limit: 10, expand: ['medias'] });
-  products = response.data || [];
+  const response = await fetch(`${baseUrl}/api/v1/products/?limit=10&expand=medias`);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const data = await response.json();
+  products = data.results || [];
 } catch (err) {
   error = err.message;
 }
@@ -19,7 +19,7 @@ try {
 <Layout>
   <main style="padding: 2rem; font-family: system-ui, sans-serif;">
     <h1>Mugs Store</h1>
-    <p>Conectado a Storecraft en {baseUrl}</p>
+    <p>Conectado a Django en {baseUrl}</p>
 
     {error && <p style="color: red;">Error: {error}</p>}
 
@@ -30,6 +30,9 @@ try {
       {products.map((product) => (
         <li style="border: 1px solid #ddd; border-radius: 8px; padding: 1rem;">
           <h3>{product.title}</h3>
+          {product.medias?.[0] && (
+            <img src={product.medias[0].url} alt={product.medias[0].alt} style="width: 100%; border-radius: 4px;" />
+          )}
           <p>{product.description || 'Sin descripción'}</p>
           <p><strong>${product.price}</strong></p>
         </li>

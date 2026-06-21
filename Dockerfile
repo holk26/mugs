@@ -19,8 +19,8 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 # URL base de la API (build-time y runtime)
-ARG CORE_API_URL=http://core:8080
-ENV CORE_API_URL=${CORE_API_URL}
+ARG DJANGO_API_URL=http://django:8080
+ENV DJANGO_API_URL=${DJANGO_API_URL}
 ENV HOST=0.0.0.0
 ENV PORT=4321
 

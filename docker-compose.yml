@@ -1,31 +1,34 @@
 services:
-  core:
+  db:
+    image: postgres:16-alpine
+    container_name: mugs-db
+    environment:
+      POSTGRES_USER: mugs
+      POSTGRES_PASSWORD: mugs
+      POSTGRES_DB: mugs
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - dokploy-network
+    restart: unless-stopped
+
+  django:
     build:
       context: .
-      dockerfile: apps/core/Dockerfile
-    container_name: mugs-core
+      dockerfile: apps/django/Dockerfile
+    container_name: mugs-django
     environment:
-      - NODE_ENV=production
-      - HOST=0.0.0.0
-      - PORT=8080
-      - SC_AUTH_SECRET_ACCESS_TOKEN=${SC_AUTH_SECRET_ACCESS_TOKEN}
-      - SC_AUTH_SECRET_REFRESH_TOKEN=${SC_AUTH_SECRET_REFRESH_TOKEN}
-      - SC_AUTH_SECRET_FORGOT_PASSWORD_TOKEN=${SC_AUTH_SECRET_FORGOT_PASSWORD_TOKEN}
-      - SC_AUTH_SECRET_CONFIRM_EMAIL_TOKEN=${SC_AUTH_SECRET_CONFIRM_EMAIL_TOKEN}
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - LIBSQL_VECTOR_URL=${LIBSQL_VECTOR_URL:-file:vector-local.db}
-      - LIBSQL_URL=${LIBSQL_URL:-file:data.db}
-      - RESEND_API_KEY=${RESEND_API_KEY:-}
-      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - DEBUG=False
+      - SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DATABASE_URL=postgres://mugs:mugs@db:5432/mugs
+      - ALLOWED_HOSTS=backshop.app.moonsbow.com,django
+      - CORS_ALLOWED_ORIGINS=https://mugs.app.moonsbow.com,http://localhost:4321
       - PRINTFUL_API_TOKEN=${PRINTFUL_API_TOKEN}
       - PRINTFUL_STORE_ID=${PRINTFUL_STORE_ID:-}
       - PRINTFUL_WEBHOOK_SECRET=${PRINTFUL_WEBHOOK_SECRET:-}
-      - PRINTFUL_INTERNAL_SECRET=${PRINTFUL_INTERNAL_SECRET}
-      - PRINTFUL_SYNC_INTERVAL_MINUTES=${PRINTFUL_SYNC_INTERVAL_MINUTES:-60}
-    volumes:
-      - core-data:/usr/src/app/data
-      - core-storage:/usr/src/app/storage
+      - PRINTFUL_BASE_URL=${PRINTFUL_BASE_URL:-https://api.printful.com}
+    depends_on:
+      - db
     networks:
       - dokploy-network
     restart: unless-stopped
@@ -43,18 +46,17 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - CORE_API_URL=http://core:8080
+        - DJANGO_API_URL=http://django:8080
     container_name: mugs-web
     environment:
-      - CORE_API_URL=http://core:8080
+      - DJANGO_API_URL=http://django:8080
       - HOST=0.0.0.0
       - PORT=4321
       - PRINTFUL_WEBHOOK_SECRET=${PRINTFUL_WEBHOOK_SECRET:-}
-      - PRINTFUL_INTERNAL_SECRET=${PRINTFUL_INTERNAL_SECRET}
     networks:
       - dokploy-network
     depends_on:
-      - core
+      - django
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
@@ -66,8 +68,7 @@ services:
       - "traefik.http.services.mugs-web-service.loadbalancer.server.port=4321"
 
 volumes:
-  core-data:
-  core-storage:
+  postgres-data:
 
 networks:
   dokploy-network:
