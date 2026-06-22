@@ -115,23 +115,26 @@ def push_order(order):
     )
 
     client = PrintfulClient()
-    line_items = [
-        {
-            'id': str(line.variant_id),
-            'qty': line.quantity,
-            'price': str(line.price),
+    items = []
+    for line in order.lines.select_related('variant'):
+        if not line.variant or not line.variant.printful_variant_id:
+            continue
+        item = {
+            'variant_id': int(line.variant.printful_variant_id),
+            'quantity': line.quantity,
+            'retail_price': str(line.price),
+            'files': [],
         }
-        for line in order.lines.all()
-        if line.variant_id
-    ]
+        if line.customer_upload:
+            absolute_url = line.customer_upload.url
+            if absolute_url.startswith('/'):
+                absolute_url = f"https://recuerdomomentos.com{absolute_url}"
+            item['files'].append({
+                'url': absolute_url,
+                'type': 'default',
+            })
+        items.append(item)
 
-    variants_map = {}
-    for item in line_items:
-        variant = ProductVariant.objects.filter(id=item['id']).first()
-        if variant and variant.printful_variant_id:
-            variants_map[item['id']] = variant.printful_variant_id
-
-    items = storecraft_line_items_to_printful_items(line_items, variants_map)
     if not items:
         return None
 

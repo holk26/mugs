@@ -27,10 +27,17 @@ services:
       - PRINTFUL_STORE_ID=${PRINTFUL_STORE_ID:-}
       - PRINTFUL_WEBHOOK_SECRET=${PRINTFUL_WEBHOOK_SECRET:-}
       - PRINTFUL_BASE_URL=${PRINTFUL_BASE_URL:-https://api.printful.com}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-orders@recuerdomomentos.com}
     ports:
       - "8080:8080"
     depends_on:
       - db
+    volumes:
+      - django-media:/app/storage/media
     networks:
       - dokploy-network
     restart: unless-stopped
@@ -49,12 +56,14 @@ services:
       dockerfile: Dockerfile
       args:
         - DJANGO_API_URL=http://django:8080
+        - PUBLIC_STRIPE_PUBLISHABLE_KEY=${PUBLIC_STRIPE_PUBLISHABLE_KEY}
     container_name: mugs-web
     environment:
       - DJANGO_API_URL=http://django:8080
       - HOST=0.0.0.0
       - PORT=4321
       - PRINTFUL_WEBHOOK_SECRET=${PRINTFUL_WEBHOOK_SECRET:-}
+      - PUBLIC_STRIPE_PUBLISHABLE_KEY=${PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
     networks:
       - dokploy-network
     depends_on:
@@ -71,6 +80,7 @@ services:
 
 volumes:
   postgres-data:
+  django-media:
 
 networks:
   dokploy-network:
