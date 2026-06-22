@@ -5,6 +5,7 @@ from .auth_views import signup, signin
 from .order_views import OrderViewSet
 from .payment_views import payment_gateways, checkout_complete
 from rest_framework_simplejwt.views import TokenRefreshView
+from apps.printful.views import printful_webhook
 
 router = DefaultRouter()
 router.register(r'products', ProductViewSet, basename='product')
@@ -19,4 +20,8 @@ urlpatterns = [
     path('payments/gateways/', payment_gateways),
     path('checkout/<uuid:order_id>/complete/', checkout_complete),
     path('', include(router.urls)),
+]
+
+urlpatterns += [
+    path('printful/webhook/', printful_webhook),
 ]
