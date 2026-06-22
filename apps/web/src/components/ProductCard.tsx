@@ -1,4 +1,5 @@
 import type { Product } from '../lib/api';
+import { Link } from '@tanstack/react-router';
 
 interface Props {
   product: Product;
@@ -6,10 +7,12 @@ interface Props {
 
 export default function ProductCard({ product }: Props) {
   const image = product.medias[0]?.url;
+  const fallbackPrice = product.variants[0]?.price || product.price || '0.00';
 
   return (
-    <a
-      href={`/products/${product.handle}`}
+    <Link
+      to="/products/$handle"
+      params={{ handle: product.handle }}
       className="group block"
     >
       <div className="card aspect-square overflow-hidden">
@@ -28,8 +31,8 @@ export default function ProductCard({ product }: Props) {
       </div>
       <div className="mt-4">
         <h3 className="text-base font-medium text-stone-900">{product.title}</h3>
-        <p className="mt-1 text-sm text-stone-500">From ${product.price}</p>
+        <p className="mt-1 text-sm text-stone-500">From ${fallbackPrice}</p>
       </div>
-    </a>
+    </Link>
   );
 }

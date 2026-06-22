@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ShoppingBag, Menu, X } from 'lucide-react';
 import { useCart } from '../stores/cart';
 import CartDrawer from './CartDrawer';
+import { Link } from '@tanstack/react-router';
 
 export default function Header() {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -12,17 +13,17 @@ export default function Header() {
     <>
       <header className="sticky top-0 z-40 border-b border-orange-100/80 bg-white/85 backdrop-blur-md">
         <div className="section flex h-16 items-center justify-between">
-          <a href="/" className="bg-gradient-to-r from-orange-600 to-amber-500 bg-clip-text text-lg font-bold tracking-tight text-transparent">
+          <Link to="/" className="bg-gradient-to-r from-orange-600 to-amber-500 bg-clip-text text-lg font-bold tracking-tight text-transparent">
             Recuerdo Momentos
-          </a>
+          </Link>
 
           <nav className="hidden items-center gap-8 md:flex">
-            <a href="/products" className="text-sm font-medium text-stone-600 hover:text-stone-900">
+            <Link to="/products" className="text-sm font-medium text-stone-600 hover:text-stone-900">
               Shop
-            </a>
-            <a href="/cart" className="text-sm font-medium text-stone-600 hover:text-stone-900">
+            </Link>
+            <Link to="/cart" className="text-sm font-medium text-stone-600 hover:text-stone-900">
               Cart
-            </a>
+            </Link>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -50,12 +51,12 @@ export default function Header() {
 
         {mobileOpen && (
           <div className="border-t border-orange-100 bg-white px-4 py-4 md:hidden">
-            <a href="/products" className="block py-3 text-base font-medium text-stone-700">
+            <Link to="/products" className="block py-3 text-base font-medium text-stone-700">
               Shop
-            </a>
-            <a href="/cart" className="block py-3 text-base font-medium text-stone-700">
+            </Link>
+            <Link to="/cart" className="block py-3 text-base font-medium text-stone-700">
               Cart
-            </a>
+            </Link>
           </div>
         )}
       </header>

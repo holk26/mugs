@@ -1,5 +1,6 @@
 import { X, Plus, Minus, Trash2 } from 'lucide-react';
 import { useCart } from '../stores/cart';
+import { Link } from '@tanstack/react-router';
 
 interface Props {
   isOpen: boolean;
@@ -31,13 +32,13 @@ export default function CartDrawer({ isOpen, onClose, inline }: Props) {
         {items.length === 0 ? (
           <div className={`flex flex-col items-center text-center ${inline ? '' : 'h-full justify-center'}`}>
             <p className="text-stone-500">Your cart is empty.</p>
-            <a
-              href="/products"
+            <Link
+              to="/products"
               onClick={onClose}
               className="mt-4 text-sm font-medium text-orange-700 hover:underline"
             >
               Start shopping
-            </a>
+            </Link>
           </div>
         ) : (
           <ul className="space-y-6">
@@ -102,9 +103,9 @@ export default function CartDrawer({ isOpen, onClose, inline }: Props) {
             <span>Total</span>
             <span>${total().toFixed(2)}</span>
           </div>
-          <a href="/checkout" onClick={onClose} className="btn-primary w-full">
+          <Link to="/checkout" onClick={onClose} className="btn-primary w-full">
             Checkout
-          </a>
+          </Link>
         </div>
       )}
     </>

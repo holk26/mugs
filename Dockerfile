@@ -1,4 +1,4 @@
-# Dockerfile de producción para la tienda Astro (SSR con @astrojs/node)
+# Dockerfile de producción para la tienda SPA (Vite + React + TanStack Router)
 FROM node:22-slim
 
 WORKDIR /app
@@ -18,11 +18,11 @@ RUN pnpm install --frozen-lockfile
 # Copiar todo el código fuente
 COPY . .
 
-# URL base de la API (build-time y runtime)
-ARG DJANGO_API_URL=http://django:8080
-ARG PUBLIC_STRIPE_PUBLISHABLE_KEY
-ENV DJANGO_API_URL=${DJANGO_API_URL}
-ENV PUBLIC_STRIPE_PUBLISHABLE_KEY=${PUBLIC_STRIPE_PUBLISHABLE_KEY}
+# URL base de la API y Stripe key (build-time)
+ARG VITE_API_URL=http://django:8080
+ARG VITE_PUBLIC_STRIPE_PUBLISHABLE_KEY
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_PUBLIC_STRIPE_PUBLISHABLE_KEY=${VITE_PUBLIC_STRIPE_PUBLISHABLE_KEY}
 ENV HOST=0.0.0.0
 ENV PORT=4321
 
@@ -31,5 +31,5 @@ RUN pnpm --filter @mugs/web build
 
 EXPOSE 4321
 
-# Servidor SSR standalone de Astro
-CMD ["node", "apps/web/dist/server/entry.mjs"]
+# Servidor SPA
+CMD ["pnpm", "--filter", "@mugs/web", "preview", "--host", "0.0.0.0", "--port", "4321"]

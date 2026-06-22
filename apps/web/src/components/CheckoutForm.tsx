@@ -15,8 +15,9 @@ import {
   type OrderLine,
 } from '../lib/api';
 import { Lock } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 
-const stripePromise = loadStripe(import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
+const stripePromise = loadStripe(import.meta.env.VITE_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
 function PaymentForm({ orderId }: { orderId: string }) {
   const stripe = useStripe();
@@ -105,9 +106,9 @@ export default function CheckoutForm() {
     return (
       <div className="section py-20 text-center">
         <p className="text-stone-600">Your cart is empty.</p>
-        <a href="/products" className="btn-secondary mt-6 inline-flex">
+        <Link to="/products" className="btn-secondary mt-6 inline-flex">
           Continue shopping
-        </a>
+        </Link>
       </div>
     );
   }
