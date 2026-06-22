@@ -7,13 +7,16 @@
 
 @layer base {
   :root {
-    --color-bg: #ffffff;
+    --color-bg: #fffaf7;
     --color-surface: #fafaf9;
     --color-text: #1c1917;
     --color-text-secondary: #78716c;
     --color-border: #e7e5e4;
-    --color-accent: #c2410c;
-    --color-accent-hover: #9a3412;
+    --color-accent: #ea580c;
+    --color-accent-hover: #c2410c;
+    --gradient-accent-glow: radial-gradient(circle at 8% 5%, rgba(251, 146, 60, 0.18), transparent 35%);
+    --gradient-sun-glow: radial-gradient(circle at 88% 0%, rgba(251, 191, 36, 0.2), transparent 30%);
+    --bg-base-gradient: linear-gradient(180deg, #fff8f4 0%, #ffffff 35%, #fffdf8 100%);
   }
 
   * {
@@ -25,18 +28,19 @@
   }
 
   body {
-    @apply bg-white text-stone-900 antialiased;
+    @apply text-stone-900 antialiased;
+    background: var(--gradient-accent-glow), var(--gradient-sun-glow), var(--bg-base-gradient);
     font-family: var(--font-sans);
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-orange-700 px-6 py-3 text-sm font-medium text-white transition hover:bg-orange-800 focus:outline-none focus:ring-2 focus:ring-orange-700 focus:ring-offset-2 disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-orange-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2 disabled:opacity-50;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-medium text-stone-700 transition hover:border-stone-400 hover:bg-stone-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-orange-200 bg-white/90 px-6 py-3 text-sm font-medium text-stone-700 transition hover:border-orange-300 hover:bg-orange-50;
   }
 
   .section {
@@ -44,6 +48,6 @@
   }
 
   .card {
-    @apply overflow-hidden rounded-2xl border border-stone-100 bg-white shadow-sm transition hover:shadow-md;
+    @apply overflow-hidden rounded-2xl border border-orange-100/70 bg-white/95 shadow-sm backdrop-blur-sm transition hover:-translate-y-0.5 hover:shadow-lg;
   }
 }
