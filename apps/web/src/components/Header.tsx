@@ -10,9 +10,9 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-stone-100 bg-white/80 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-orange-100/80 bg-white/85 backdrop-blur-md">
         <div className="section flex h-16 items-center justify-between">
-          <a href="/" className="text-lg font-bold tracking-tight text-stone-900">
+          <a href="/" className="bg-gradient-to-r from-orange-600 to-amber-500 bg-clip-text text-lg font-bold tracking-tight text-transparent">
             Recuerdo Momentos
           </a>
 
@@ -28,7 +28,7 @@ export default function Header() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsCartOpen(true)}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-stone-100"
+              className="relative flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-orange-50"
               aria-label="Open cart"
             >
               <ShoppingBag className="h-5 w-5 text-stone-700" strokeWidth={1.5} />
@@ -39,7 +39,7 @@ export default function Header() {
               )}
             </button>
             <button
-              className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-stone-100 md:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-orange-50 md:hidden"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"
             >
@@ -49,7 +49,7 @@ export default function Header() {
         </div>
 
         {mobileOpen && (
-          <div className="border-t border-stone-100 bg-white px-4 py-4 md:hidden">
+          <div className="border-t border-orange-100 bg-white px-4 py-4 md:hidden">
             <a href="/products" className="block py-3 text-base font-medium text-stone-700">
               Shop
             </a>

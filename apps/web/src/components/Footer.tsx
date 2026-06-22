@@ -1,10 +1,12 @@
 export default function Footer() {
   return (
-    <footer className="border-t border-stone-100 bg-stone-50">
+    <footer className="border-t border-orange-100 bg-gradient-to-b from-white to-orange-50/60">
       <div className="section py-12">
         <div className="grid gap-8 md:grid-cols-3">
           <div>
-            <p className="text-lg font-bold tracking-tight text-stone-900">Recuerdo Momentos</p>
+            <p className="bg-gradient-to-r from-orange-600 to-amber-500 bg-clip-text text-lg font-bold tracking-tight text-transparent">
+              Recuerdo Momentos
+            </p>
             <p className="mt-2 text-sm leading-relaxed text-stone-500">
               Custom mugs made from children's drawings. A keepsake for every little artist.
             </p>
@@ -23,7 +25,7 @@ export default function Footer() {
               <input
                 type="email"
                 placeholder="your@email.com"
-                className="flex-1 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm outline-none focus:border-orange-700"
+                className="flex-1 rounded-full border border-orange-200 bg-white px-4 py-2 text-sm outline-none focus:border-orange-600"
               />
               <button className="btn-primary px-4 py-2">Join</button>
             </div>
