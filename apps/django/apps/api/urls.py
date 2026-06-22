@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import ProductViewSet, CollectionViewSet
 from .auth_views import signup, signin
 from .order_views import OrderViewSet
+from .payment_views import payment_gateways, checkout_complete
 from rest_framework_simplejwt.views import TokenRefreshView
 
 router = DefaultRouter()
@@ -15,5 +16,7 @@ urlpatterns = [
     path('auth/signup/', signup),
     path('auth/signin/', signin),
     path('auth/refresh/', TokenRefreshView.as_view()),
+    path('payments/gateways/', payment_gateways),
+    path('checkout/<uuid:order_id>/complete/', checkout_complete),
     path('', include(router.urls)),
 ]
