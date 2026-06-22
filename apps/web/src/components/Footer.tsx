@@ -1,3 +1,5 @@
+import { Link } from '@tanstack/react-router';
+
 export default function Footer() {
   return (
     <footer className="border-t border-orange-100 bg-gradient-to-b from-white to-orange-50/60">
@@ -14,8 +16,8 @@ export default function Footer() {
           <div>
             <p className="text-sm font-semibold text-stone-900">Shop</p>
             <ul className="mt-3 space-y-2 text-sm text-stone-500">
-              <li><a href="/products" className="hover:text-stone-900">All mugs</a></li>
-              <li><a href="/cart" className="hover:text-stone-900">Cart</a></li>
+              <li><Link to="/products" className="hover:text-stone-900">All mugs</Link></li>
+              <li><Link to="/cart" className="hover:text-stone-900">Cart</Link></li>
             </ul>
           </div>
           <div>

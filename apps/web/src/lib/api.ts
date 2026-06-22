@@ -1,6 +1,5 @@
 const API_BASE =
-  import.meta.env.DJANGO_API_URL ||
-  import.meta.env.CORE_API_URL ||
+  import.meta.env.VITE_API_URL ||
   'http://localhost:8080';
 
 export interface Product {
@@ -8,7 +7,7 @@ export interface Product {
   handle: string;
   title: string;
   description: string;
-  price: string;
+  price?: string | null;
   compare_at_price?: string;
   status: string;
   medias: { id: string; url: string; alt: string }[];
@@ -19,7 +18,7 @@ export interface Variant {
   id: string;
   title: string;
   sku: string;
-  price: string;
+  price: string | null;
   options: Record<string, string>;
 }
 

@@ -1,9 +1,8 @@
-/// <reference types="astro/client" />
+/// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly DJANGO_API_URL?: string;
-  readonly CORE_API_URL?: string;
-  readonly PUBLIC_STRIPE_PUBLISHABLE_KEY?: string;
+  readonly VITE_API_URL?: string;
+  readonly VITE_PUBLIC_STRIPE_PUBLISHABLE_KEY?: string;
 }
 
 interface ImportMeta {

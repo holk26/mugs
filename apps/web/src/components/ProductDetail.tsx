@@ -19,6 +19,7 @@ export default function ProductDetail({ product }: Props) {
     () => product.variants.find((v) => v.id === variantId) || product.variants[0],
     [variantId, product.variants]
   );
+  const displayPrice = selectedVariant?.price || product.price || '0.00';
 
   useEffect(() => {
     return () => {
@@ -84,7 +85,7 @@ export default function ProductDetail({ product }: Props) {
             {product.title}
           </h1>
           <p className="mt-3 text-2xl font-medium text-stone-700">
-            ${selectedVariant?.price}
+            ${displayPrice}
           </p>
           <p className="mt-6 leading-relaxed text-stone-600">{product.description}</p>
 
