@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'apps.orders',
     'apps.payments',
     'apps.core',
+    'anymail',
 ]
 
 MIDDLEWARE = [
@@ -124,6 +125,10 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "orders@recuerdomomentos.com")
 if RESEND_API_KEY:
-    EMAIL_BACKEND = "resend.backend.ResendBackend"
+    EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
+    ANYMAIL = {
+        "RESEND_API_KEY": RESEND_API_KEY,
+        "RESEND_API_URL": "https://api.resend.com/v1/",
+    }
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

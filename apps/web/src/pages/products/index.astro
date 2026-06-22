@@ -1,0 +1,19 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ProductCard from '../../components/ProductCard';
+import { listProducts } from '../../lib/api';
+
+const { results: products } = await listProducts();
+---
+
+<Layout title="Shop — Recuerdo Momentos">
+  <section class="mx-auto max-w-6xl px-4 py-12">
+    <h1 class="text-3xl font-semibold text-neutral-900">Shop mugs</h1>
+    <p class="mt-2 text-neutral-600">Personalized with your child's own drawing.</p>
+    <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {products.map((product) => (
+        <ProductCard product={product} />
+      ))}
+    </div>
+  </section>
+</Layout>

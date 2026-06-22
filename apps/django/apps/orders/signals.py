@@ -13,5 +13,5 @@ def handle_order_paid(sender, instance, created, **kwargs):
     if instance.status == 'paid' and not instance.printful_order_id:
         push_order(instance)
         send_order_confirmation_email(instance)
-    elif instance.status in ('processing', 'fulfilled', 'shipped', 'cancelled', 'failed'):
+    elif instance.status in ('processing', 'fulfilled', 'cancelled', 'failed') and instance.printful_order_id:
         send_order_update_email(instance)

@@ -7,7 +7,7 @@ interface CartState {
   addItem: (item: CartItem) => void;
   removeItem: (variantId: string) => void;
   updateQuantity: (variantId: string, quantity: number) => void;
-  updateUpload: (variantId: string, uploadUrl: string, file?: File) => void;
+  updateUpload: (variantId: string, uploadPreview: string, uploadName: string) => void;
   clearCart: () => void;
   total: () => number;
 }
@@ -38,16 +38,25 @@ export const useCart = create<CartState>()(
             i.variantId === variantId ? { ...i, quantity } : i
           ),
         }),
-      updateUpload: (variantId, uploadUrl, file) =>
+      updateUpload: (variantId, uploadPreview, uploadName) =>
         set({
           items: get().items.map((i) =>
-            i.variantId === variantId ? { ...i, uploadUrl, uploadFile: file } : i
+            i.variantId === variantId ? { ...i, uploadPreview, uploadName } : i
           ),
         }),
       clearCart: () => set({ items: [] }),
       total: () =>
         get().items.reduce((sum, item) => sum + item.price * item.quantity, 0),
     }),
-    { name: 'recuerdo-cart' }
+    {
+      name: 'recuerdo-cart',
+      partialize: (state) => ({
+        items: state.items.map(({ uploadPreview, uploadName, ...rest }) => ({
+          ...rest,
+          uploadPreview,
+          uploadName,
+        })),
+      }),
+    }
   )
 );

@@ -1,5 +1,4 @@
 import stripe
-from decimal import Decimal
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -13,10 +12,11 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def payment_gateways(request):
-    gateways = PaymentGateway.objects.filter(is_enabled=True)
+    gateways = PaymentGateway.objects.filter(enabled=True)
     return Response([
-        {'code': g.code, 'name': g.name, 'config': g.config}
+        {'code': g.code, 'name': g.name}
         for g in gateways
     ])
 
@@ -50,6 +50,7 @@ def create_payment_intent(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def stripe_webhook(request):
     payload = request.body
     sig_header = request.headers.get('Stripe-Signature')

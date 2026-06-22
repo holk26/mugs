@@ -18,9 +18,11 @@ def test_create_order():
 
 
 @pytest.mark.django_db
-class DrawingUploadTests:
+class TestDrawingUpload:
     def setup_method(self):
-        self.user = User.objects.create_user(email='buyer@example.com', password='pass')
+        self.user = User.objects.create_user(
+            email='buyer@example.com', username='buyer', password='pass'
+        )
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
         self.product = Product.objects.create(
@@ -52,7 +54,13 @@ class DrawingUploadTests:
     def test_upload_drawing(self):
         url = reverse('order-upload-drawing', kwargs={'pk': self.order.id, 'line_id': self.line.id})
         image = BytesIO(b'fake-image-data')
-        response = self.client.post(url, {'file': image}, format='multipart')
+        image.content_type = 'image/png'
+        response = self.client.post(
+            url,
+            {'file': image},
+            format='multipart',
+            HTTP_CONTENT_DISPOSITION='attachment; filename="drawing.png"',
+        )
         assert response.status_code == 200
         self.line.refresh_from_db()
         assert self.line.customer_upload

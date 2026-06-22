@@ -8,9 +8,11 @@ from apps.orders.models import Order
 
 
 @pytest.mark.django_db
-class StripeIntentTests:
+class TestStripeIntent:
     def setup_method(self):
-        self.user = User.objects.create_user(email='buyer@example.com', password='pass')
+        self.user = User.objects.create_user(
+            email='buyer@example.com', username='buyer', password='pass'
+        )
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
         self.order = Order.objects.create(

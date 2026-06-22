@@ -27,7 +27,13 @@ class OrderViewSet(viewsets.ModelViewSet):
         from django.utils import timezone
         from datetime import timedelta
 
-        order = self.get_object()
+        # Allow guests to upload by fetching the order directly; the time/status
+        # window below prevents abuse of arbitrary order IDs.
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response({'detail': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+
         if order.status != 'pending' or order.created_at < timezone.now() - timedelta(minutes=15):
             return Response({'detail': 'Upload not allowed.'}, status=status.HTTP_403_FORBIDDEN)
 

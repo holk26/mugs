@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import {
   Elements,
   PaymentElement,
@@ -7,17 +7,23 @@ import {
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { useCart } from '../stores/cart';
-import { createOrder, createPaymentIntent, uploadDrawing } from '../lib/api';
+import {
+  createOrder,
+  createPaymentIntent,
+  uploadDrawing,
+  dataUrlToFile,
+  type OrderLine,
+} from '../lib/api';
 
-const stripePromise = loadStripe(import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY);
+const stripePromise = loadStripe(import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
-function PaymentForm({ orderId, clientSecret }: { orderId: string; clientSecret: string }) {
+function PaymentForm({ orderId }: { orderId: string }) {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string>('');
   const [processing, setProcessing] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!stripe || !elements) return;
 
@@ -58,31 +64,37 @@ function PaymentForm({ orderId, clientSecret }: { orderId: string; clientSecret:
 }
 
 export default function CheckoutForm() {
-  const { items, total, clearCart } = useCart();
+  const { items, total } = useCart();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [step, setStep] = useState<'form' | 'payment'>('form');
   const [clientSecret, setClientSecret] = useState('');
   const [orderId, setOrderId] = useState('');
+  const [error, setError] = useState('');
 
-  const handleCreateOrder = async (e: React.FormEvent) => {
+  const handleCreateOrder = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!email || items.length === 0) return;
 
-    const order = await createOrder(items, { email, name });
-    setOrderId(order.id);
+    setError('');
+    try {
+      const order = await createOrder(items, { email, name });
+      setOrderId(order.id);
 
-    for (const item of items) {
-      const line = order.lines.find((l: any) => l.variant === item.variantId);
-      if (line && item.uploadFile) {
-        await uploadDrawing(order.id, line.id, item.uploadFile);
+      for (const item of items) {
+        const line = order.lines.find((l: OrderLine) => l.variant === item.variantId);
+        if (line && item.uploadPreview && item.uploadName) {
+          const file = dataUrlToFile(item.uploadPreview, item.uploadName);
+          await uploadDrawing(order.id, line.id, file);
+        }
       }
-    }
 
-    const intent = await createPaymentIntent(order.id);
-    setClientSecret(intent.client_secret);
-    setStep('payment');
-    clearCart();
+      const intent = await createPaymentIntent(order.id);
+      setClientSecret(intent.client_secret);
+      setStep('payment');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Checkout failed');
+    }
   };
 
   if (items.length === 0 && step === 'form') {
@@ -139,6 +151,8 @@ export default function CheckoutForm() {
             </div>
           </div>
 
+          {error && <p className="text-sm text-red-600">{error}</p>}
+
           <button
             type="submit"
             className="w-full rounded-lg bg-orange-700 py-3 font-medium text-white hover:bg-orange-800"
@@ -150,7 +164,7 @@ export default function CheckoutForm() {
         <div className="mt-6">
           {clientSecret && (
             <Elements stripe={stripePromise} options={{ clientSecret }}>
-              <PaymentForm orderId={orderId} clientSecret={clientSecret} />
+              <PaymentForm orderId={orderId} />
             </Elements>
           )}
         </div>

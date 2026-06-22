@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from apps.printful.models import PrintfulWebhookEvent
 from apps.printful.webhooks import verify_printful_signature
+from apps.printful.transformers import printful_order_status_to_order_status
 from apps.orders.models import Order
 
 
@@ -34,17 +35,11 @@ def printful_webhook(request):
         except Order.DoesNotExist:
             return JsonResponse({'status': 'ignored'})
 
-        status_map = {
-            'order_created': 'processing',
-            'order_updated': 'processing',
-            'order_failed': 'failed',
-            'order_canceled': 'cancelled',
-            'order_fulfilled': 'fulfilled',
-        }
-        new_status = status_map.get(event_type)
+        pf_status = printful_data.get('order', {}).get('status', '')
+        new_status = printful_order_status_to_order_status(pf_status)
         if new_status and order.status != new_status:
             order.status = new_status
-            order.printful_status = printful_data.get('order', {}).get('status', '')
+            order.printful_status = pf_status
             order.save(update_fields=['status', 'printful_status'])
 
     return JsonResponse({'status': 'ok'})

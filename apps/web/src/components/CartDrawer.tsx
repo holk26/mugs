@@ -36,7 +36,7 @@ export default function CartDrawer({ isOpen, onClose }: Props) {
                   <div className="flex-1">
                     <p className="font-medium">{item.title}</p>
                     <p className="text-sm text-neutral-500">{item.variantTitle}</p>
-                    {item.uploadUrl && (
+                    {item.uploadPreview && (
                       <p className="text-xs text-green-700">Drawing attached</p>
                     )}
                   </div>

@@ -1,4 +1,7 @@
-const API_BASE = import.meta.env.DJANGO_API_URL || 'http://localhost:8080';
+const API_BASE =
+  import.meta.env.DJANGO_API_URL ||
+  import.meta.env.CORE_API_URL ||
+  'http://localhost:8080';
 
 export interface Product {
   id: string;
@@ -27,8 +30,32 @@ export interface CartItem {
   variantTitle: string;
   price: number;
   quantity: number;
-  uploadUrl?: string;
-  uploadFile?: File;
+  uploadPreview?: string;
+  uploadName?: string;
+}
+
+export interface OrderLine {
+  id: string;
+  variant: string;
+  title: string;
+  quantity: number;
+  price: string;
+  customer_upload?: string;
+}
+
+export interface Order {
+  id: string;
+  status: string;
+  customer_email: string;
+  customer_name: string;
+  total: string;
+  currency: string;
+  lines: OrderLine[];
+}
+
+export interface PaymentIntent {
+  client_secret: string;
+  publishable_key: string;
 }
 
 async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
@@ -51,7 +78,10 @@ export async function getProduct(handle: string): Promise<Product> {
   return fetchJson(`/api/v1/products/${handle}/?expand=medias,variants`);
 }
 
-export async function createOrder(items: CartItem[], customer: { email: string; name: string }) {
+export async function createOrder(
+  items: CartItem[],
+  customer: { email: string; name: string }
+): Promise<Order> {
   const lines = items.map((item) => ({
     variant: item.variantId,
     title: `${item.title} — ${item.variantTitle}`,
@@ -70,18 +100,42 @@ export async function createOrder(items: CartItem[], customer: { email: string; 
   });
 }
 
-export async function uploadDrawing(orderId: string, lineId: string, file: File) {
+export async function uploadDrawing(
+  orderId: string,
+  lineId: string,
+  file: File
+): Promise<{ id: string; customer_upload: string }> {
   const form = new FormData();
   form.append('file', file);
-  return fetch(`${API_BASE}/api/v1/orders/${orderId}/lines/${lineId}/upload/`, {
-    method: 'POST',
-    body: form,
-  });
+  const response = await fetch(
+    `${API_BASE}/api/v1/orders/${orderId}/lines/${lineId}/upload/`,
+    {
+      method: 'POST',
+      body: form,
+    }
+  );
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `HTTP ${response.status}`);
+  }
+  return response.json();
 }
 
-export async function createPaymentIntent(orderId: string) {
+export async function createPaymentIntent(orderId: string): Promise<PaymentIntent> {
   return fetchJson('/api/v1/payments/stripe/intent/', {
     method: 'POST',
     body: JSON.stringify({ order_id: orderId }),
   });
+}
+
+export function dataUrlToFile(dataUrl: string, filename: string): File {
+  const arr = dataUrl.split(',');
+  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
 }

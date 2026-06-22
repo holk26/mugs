@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useCart } from '../stores/cart';
 import type { Product } from '../lib/api';
 import UploadZone from './UploadZone';
@@ -9,8 +9,8 @@ interface Props {
 
 export default function ProductDetail({ product }: Props) {
   const [variantId, setVariantId] = useState(product.variants[0]?.id || '');
-  const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>('');
+  const [fileName, setFileName] = useState<string>('');
   const addItem = useCart((s) => s.addItem);
 
   const selectedVariant = useMemo(
@@ -18,9 +18,25 @@ export default function ProductDetail({ product }: Props) {
     [variantId, product.variants]
   );
 
+  useEffect(() => {
+    return () => {
+      if (preview.startsWith('blob:')) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [preview]);
+
   const handleFile = (f: File) => {
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
+    setFileName(f.name);
+    const blobUrl = URL.createObjectURL(f);
+    setPreview(blobUrl);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = reader.result as string;
+      setPreview(dataUrl);
+      URL.revokeObjectURL(blobUrl);
+    };
+    reader.readAsDataURL(f);
   };
 
   const handleAdd = () => {
@@ -32,8 +48,8 @@ export default function ProductDetail({ product }: Props) {
       variantTitle: selectedVariant.title,
       price: parseFloat(selectedVariant.price),
       quantity: 1,
-      uploadFile: file || undefined,
-      uploadUrl: preview || undefined,
+      uploadPreview: preview || undefined,
+      uploadName: fileName || undefined,
     });
   };
 
