@@ -1,84 +1,66 @@
-# Mugs Store
+# Recuerdo Momentos — Mugs Store
 
-Monorepo con la tienda frontend en **Astro** y el backend/API en **Storecraft**.
+Custom mugs from kids' drawings. Astro frontend + Django backend + Printful fulfillment.
 
 ## Estructura
 
-```text
+```
 mugs/
 ├── apps/
-│   ├── core/          # API Storecraft (Node.js + SQLite)
-│   └── web/           # Tienda Astro (SSR / estático)
+│   ├── django/         # Django 6.0.6 backend (API, payments, orders, Printful sync)
+│   └── web/            # Astro 6 SSR frontend (React islands, Tailwind, Stripe)
 ├── packages/
-│   └── api-client/    # Cliente tipado para la API de Storecraft
-├── docker-compose.yml # Orquestación de core + web
+│   ├── api-client/     # JS API client for the Django backend
+│   └── printful/       # Printful integration (legacy Storecraft extension)
+├── docker-compose.yml  # Orquestación: db (Postgres), django, web
 └── pnpm-workspace.yaml
 ```
 
-## Requisitos
+## Variables de entorno clave
 
-- Node.js >= 22
-- pnpm >= 11
-- Docker + Docker Compose (opcional)
+### Backend (apps/django/.env)
 
-## Configuración
+- `DATABASE_URL` — PostgreSQL connection string
+- `STRIPE_SECRET_KEY` — Stripe secret key
+- `STRIPE_PUBLISHABLE_KEY` — Stripe publishable key
+- `STRIPE_WEBHOOK_SECRET` — Stripe webhook signing secret
+- `RESEND_API_KEY` — Resend API key for order emails
+- `PRINTFUL_API_TOKEN` — Printful API token
+- `PRINTFUL_WEBHOOK_SECRET` — Printful webhook signing secret
 
-1. Copia el ejemplo de entorno en `apps/core`:
+### Frontend (apps/web/.env)
 
-```bash
-cp apps/core/.env.example apps/core/.env
-```
-
-2. Completa `apps/core/.env` con las variables de Storecraft (tokens de auth, etc.).
+- `DJANGO_API_URL` — Backend API base URL (default: `http://localhost:8080`)
+- `PUBLIC_STRIPE_PUBLISHABLE_KEY` — Stripe publishable key (public)
 
 ## Desarrollo local
 
 ```bash
-# Instalar dependencias del workspace
-pnpm install
+# Backend
+cd apps/django
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver 8080
 
-# Levantar el backend (puerto 8080)
-cd apps/core
-npm run migrate
-npm start
-
-# En otra terminal, levantar Astro (puerto 4321)
+# Frontend (desde raíz)
 pnpm --filter @mugs/web dev --host
 ```
 
-- Dashboard de Storecraft: http://localhost:8080/dashboard
-- Referencia de la API: http://localhost:8080/api
-- Tienda Astro: http://localhost:4321
-
-## Docker Compose local
+## Docker Compose
 
 ```bash
-docker compose -f docker-compose.yml up --build
+docker compose up --build
 ```
 
-- Core: http://localhost:8080
-- Web: http://localhost:4321
+- Django API: http://localhost:8080
+- Astro storefront: http://localhost:4321
 
-> Recuerda crear `apps/core/.env` antes de levantar los contenedores.
+## Funcionalidades
 
-## Dokploy (producción)
-
-Se usa `docker-compose.dokploy.yml`. Define las variables de entorno en el panel de Dokploy para el compose service.
-
-## Build de producción (Astro)
-
-```bash
-pnpm --filter @mugs/web build
-pnpm --filter @mugs/web preview
-```
-
-## Comandos útiles
-
-| Comando | Descripción |
-| --- | --- |
-| `pnpm install` | Instala dependencias del monorepo |
-| `cd apps/core && npm run migrate` | Ejecuta migraciones de SQLite |
-| `cd apps/core && npm start` | Inicia el backend |
-| `pnpm --filter @mugs/web dev --host` | Inicia Astro en desarrollo |
-| `pnpm --filter @mugs/web build` | Compila la tienda |
-| `docker compose up --build` | Levanta todo con Docker |
+- Catálogo de productos sincronizado con Printful
+- Subida de dibujos por el cliente por línea de pedido
+- Pago con Stripe (PaymentIntent + PaymentElement)
+- Emails de confirmación y actualización con Resend
+- Printful fulfillment con push de orden y webhook de estado
+- Carrito persistente con Zustand + localStorage
