@@ -26,6 +26,8 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.orders',
     'apps.payments',
+    'apps.core',
+    'anymail',
 ]
 
 MIDDLEWARE = [
@@ -109,3 +111,24 @@ PRINTFUL_API_TOKEN = os.environ.get('PRINTFUL_API_TOKEN', '')
 PRINTFUL_STORE_ID = os.environ.get('PRINTFUL_STORE_ID', '')
 PRINTFUL_WEBHOOK_SECRET = os.environ.get('PRINTFUL_WEBHOOK_SECRET', '')
 PRINTFUL_BASE_URL = os.environ.get('PRINTFUL_BASE_URL', 'https://api.printful.com')
+
+# Media files (customer drawing uploads)
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "storage" / "media"
+
+# Stripe
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+
+# Resend / email
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "orders@recuerdomomentos.com")
+if RESEND_API_KEY:
+    EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
+    ANYMAIL = {
+        "RESEND_API_KEY": RESEND_API_KEY,
+        "RESEND_API_URL": "https://api.resend.com/v1/",
+    }
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

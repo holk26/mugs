@@ -108,43 +108,48 @@ class CatalogSync:
 
 def push_order(order):
     """Push a paid order to Printful for fulfillment."""
+    from django.db import transaction
     from apps.products.models import ProductVariant
-    from .transformers import (
-        storecraft_address_to_printful_recipient,
-        storecraft_line_items_to_printful_items,
-    )
+    from .transformers import storecraft_address_to_printful_recipient
 
-    client = PrintfulClient()
-    line_items = [
-        {
-            'id': str(line.variant_id),
-            'qty': line.quantity,
-            'price': str(line.price),
-        }
-        for line in order.lines.all()
-        if line.variant_id
-    ]
+    def _do_push():
+        client = PrintfulClient()
+        items = []
+        for line in order.lines.select_related('variant'):
+            if not line.variant or not line.variant.printful_variant_id:
+                continue
+            item = {
+                'variant_id': int(line.variant.printful_variant_id),
+                'quantity': line.quantity,
+                'retail_price': str(line.price),
+                'files': [],
+            }
+            if line.customer_upload:
+                absolute_url = line.customer_upload.url
+                if absolute_url.startswith('/'):
+                    # TODO: replace with the real public domain / CDN
+                    absolute_url = f"https://mugs.app.moonsbow.com{absolute_url}"
+                item['files'].append({
+                    'url': absolute_url,
+                    'type': 'default',
+                })
+            items.append(item)
 
-    variants_map = {}
-    for item in line_items:
-        variant = ProductVariant.objects.filter(id=item['id']).first()
-        if variant and variant.printful_variant_id:
-            variants_map[item['id']] = variant.printful_variant_id
+        if not items:
+            return None
 
-    items = storecraft_line_items_to_printful_items(line_items, variants_map)
-    if not items:
-        return None
+        recipient = storecraft_address_to_printful_recipient(order.shipping_address)
+        result = client.create_order({
+            'external_id': str(order.id),
+            'recipient': recipient,
+            'items': items,
+            'shipping': 'STANDARD',
+        })
 
-    recipient = storecraft_address_to_printful_recipient(order.shipping_address)
-    result = client.create_order({
-        'external_id': str(order.id),
-        'recipient': recipient,
-        'items': items,
-        'shipping': 'STANDARD',
-    })
+        pf_order = result.get('result', {})
+        order.printful_order_id = str(pf_order.get('id', ''))
+        order.printful_status = pf_order.get('status', '')
+        order.save(update_fields=['printful_order_id', 'printful_status'])
+        return order.printful_order_id
 
-    pf_order = result.get('result', {})
-    order.printful_order_id = str(pf_order.get('id', ''))
-    order.printful_status = pf_order.get('status', '')
-    order.save(update_fields=['printful_order_id', 'printful_status'])
-    return order.printful_order_id
+    transaction.on_commit(_do_push)

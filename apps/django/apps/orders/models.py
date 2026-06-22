@@ -24,6 +24,7 @@ class Order(models.Model):
     shipping_address = models.JSONField(default=dict)
     printful_order_id = models.CharField(max_length=50, blank=True)
     printful_status = models.CharField(max_length=50, blank=True)
+    payment_intent_id = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -35,3 +36,9 @@ class OrderLine(models.Model):
     title = models.CharField(max_length=500)
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    customer_upload = models.FileField(
+        upload_to='drawings/%Y/%m/%d/',
+        blank=True,
+        null=True,
+        help_text='Customer drawing to be printed on the mug'
+    )
