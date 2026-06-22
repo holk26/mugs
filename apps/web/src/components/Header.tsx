@@ -4,42 +4,42 @@ import { useCart } from '../stores/cart';
 import CartDrawer from './CartDrawer';
 
 export default function Header() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const count = useCart((s) => s.items.reduce((sum, i) => sum + i.quantity, 0));
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <a href="/" className="text-xl font-semibold tracking-tight text-neutral-900">
+      <header className="sticky top-0 z-40 border-b border-stone-100 bg-white/80 backdrop-blur-md">
+        <div className="section flex h-16 items-center justify-between">
+          <a href="/" className="text-lg font-bold tracking-tight text-stone-900">
             Recuerdo Momentos
           </a>
 
           <nav className="hidden items-center gap-8 md:flex">
-            <a href="/products" className="text-sm font-medium text-neutral-600 hover:text-neutral-900">
+            <a href="/products" className="text-sm font-medium text-stone-600 hover:text-stone-900">
               Shop
             </a>
-            <a href="/cart" className="text-sm font-medium text-neutral-600 hover:text-neutral-900">
+            <a href="/cart" className="text-sm font-medium text-stone-600 hover:text-stone-900">
               Cart
             </a>
           </nav>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsOpen(true)}
-              className="relative rounded-full p-2 hover:bg-neutral-100"
+              onClick={() => setIsCartOpen(true)}
+              className="relative flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-stone-100"
               aria-label="Open cart"
             >
-              <ShoppingBag className="h-5 w-5 text-neutral-700" />
+              <ShoppingBag className="h-5 w-5 text-stone-700" strokeWidth={1.5} />
               {count > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-orange-700 text-[10px] font-bold text-white">
+                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-orange-700 px-1 text-[10px] font-semibold text-white">
                   {count}
                 </span>
               )}
             </button>
             <button
-              className="md:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-stone-100 md:hidden"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"
             >
@@ -49,14 +49,18 @@ export default function Header() {
         </div>
 
         {mobileOpen && (
-          <div className="border-t border-neutral-200 px-4 py-4 md:hidden">
-            <a href="/products" className="block py-2 text-neutral-700">Shop</a>
-            <a href="/cart" className="block py-2 text-neutral-700">Cart</a>
+          <div className="border-t border-stone-100 bg-white px-4 py-4 md:hidden">
+            <a href="/products" className="block py-3 text-base font-medium text-stone-700">
+              Shop
+            </a>
+            <a href="/cart" className="block py-3 text-base font-medium text-stone-700">
+              Cart
+            </a>
           </div>
         )}
       </header>
 
-      <CartDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </>
   );
 }

@@ -1,10 +1,37 @@
 export default function Footer() {
   return (
-    <footer className="border-t border-neutral-200 bg-neutral-50">
-      <div className="mx-auto max-w-6xl px-4 py-12">
-        <p className="text-sm text-neutral-500">
-          &copy; {new Date().getFullYear()} Recuerdo Momentos. Made for little artists and big hearts.
-        </p>
+    <footer className="border-t border-stone-100 bg-stone-50">
+      <div className="section py-12">
+        <div className="grid gap-8 md:grid-cols-3">
+          <div>
+            <p className="text-lg font-bold tracking-tight text-stone-900">Recuerdo Momentos</p>
+            <p className="mt-2 text-sm leading-relaxed text-stone-500">
+              Custom mugs made from children's drawings. A keepsake for every little artist.
+            </p>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-stone-900">Shop</p>
+            <ul className="mt-3 space-y-2 text-sm text-stone-500">
+              <li><a href="/products" className="hover:text-stone-900">All mugs</a></li>
+              <li><a href="/cart" className="hover:text-stone-900">Cart</a></li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-stone-900">Stay in touch</p>
+            <p className="mt-2 text-sm text-stone-500">Join for updates and new designs.</p>
+            <div className="mt-3 flex gap-2">
+              <input
+                type="email"
+                placeholder="your@email.com"
+                className="flex-1 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm outline-none focus:border-orange-700"
+              />
+              <button className="btn-primary px-4 py-2">Join</button>
+            </div>
+          </div>
+        </div>
+        <div className="mt-12 border-t border-stone-200 pt-6 text-sm text-stone-400">
+          © {new Date().getFullYear()} Recuerdo Momentos. All rights reserved.
+        </div>
       </div>
     </footer>
   );

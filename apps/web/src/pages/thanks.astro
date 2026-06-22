@@ -7,19 +7,22 @@ const orderId = Astro.url.searchParams.get('order');
 
 <Layout title="Thank you — Recuerdo Momentos">
   {orderId && <ClearCart client:load />}
-  <section class="mx-auto max-w-2xl px-4 py-20 text-center">
-    <h1 class="text-3xl font-semibold text-neutral-900">Thank you for your order!</h1>
-    <p class="mt-4 text-neutral-600">
-      We will carefully digitize the drawing and send you updates by email.
-    </p>
-    {orderId && (
-      <p class="mt-2 text-sm text-neutral-500">Order reference: {orderId}</p>
-    )}
-    <a
-      href="/products"
-      class="mt-8 inline-block rounded-lg bg-orange-700 px-8 py-3 font-medium text-white hover:bg-orange-800"
-    >
-      Continue shopping
-    </a>
+  <section class="section py-24 text-center md:py-32">
+    <div class="mx-auto max-w-xl">
+      <h1 class="text-3xl font-semibold tracking-tight text-stone-900 md:text-4xl">
+        Thank you for your order!
+      </h1>
+      <p class="mt-6 text-lg leading-relaxed text-stone-600">
+        We will carefully digitize the drawing and send you updates by email.
+      </p>
+      {orderId && (
+        <p class="mt-4 text-sm text-stone-500">
+          Order reference: <span class="font-medium text-stone-900">{orderId}</span>
+        </p>
+      )}
+      <a href="/products" class="btn-primary mt-10 inline-flex">
+        Continue shopping
+      </a>
+    </div>
   </section>
 </Layout>

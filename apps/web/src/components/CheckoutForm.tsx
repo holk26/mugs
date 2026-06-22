@@ -14,6 +14,7 @@ import {
   dataUrlToFile,
   type OrderLine,
 } from '../lib/api';
+import { Lock } from 'lucide-react';
 
 const stripePromise = loadStripe(import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -50,13 +51,16 @@ function PaymentForm({ orderId }: { orderId: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
+      <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+        <PaymentElement />
+      </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         type="submit"
         disabled={!stripe || processing}
-        className="w-full rounded-lg bg-orange-700 py-3 font-medium text-white hover:bg-orange-800 disabled:bg-neutral-300"
+        className="btn-primary w-full"
       >
+        <Lock className="h-4 w-4" />
         {processing ? 'Processing...' : 'Pay now'}
       </button>
     </form>
@@ -99,9 +103,9 @@ export default function CheckoutForm() {
 
   if (items.length === 0 && step === 'form') {
     return (
-      <div className="text-center">
-        <p className="text-neutral-600">Your cart is empty.</p>
-        <a href="/products" className="mt-4 inline-block text-orange-700 hover:underline">
+      <div className="section py-20 text-center">
+        <p className="text-stone-600">Your cart is empty.</p>
+        <a href="/products" className="btn-secondary mt-6 inline-flex">
           Continue shopping
         </a>
       </div>
@@ -109,66 +113,79 @@ export default function CheckoutForm() {
   }
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-12">
-      <h1 className="text-2xl font-semibold text-neutral-900">Checkout</h1>
+    <div className="section py-12 md:py-20">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="text-3xl font-semibold tracking-tight text-stone-900">Checkout</h1>
 
-      {step === 'form' ? (
-        <form onSubmit={handleCreateOrder} className="mt-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-neutral-700">Full name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="mt-1 w-full rounded-lg border border-neutral-300 px-4 py-2 focus:border-orange-700 focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-neutral-700">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="mt-1 w-full rounded-lg border border-neutral-300 px-4 py-2 focus:border-orange-700 focus:outline-none"
-            />
-          </div>
-
-          <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
-            <p className="text-sm font-medium text-neutral-700">Order summary</p>
-            <ul className="mt-2 space-y-1 text-sm text-neutral-600">
-              {items.map((item) => (
-                <li key={item.variantId} className="flex justify-between">
-                  <span>{item.quantity}x {item.title} &mdash; {item.variantTitle}</span>
-                  <span>${(item.price * item.quantity).toFixed(2)}</span>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-3 flex justify-between border-t border-neutral-200 pt-3 font-semibold">
-              <span>Total</span>
-              <span>${total().toFixed(2)}</span>
+        {step === 'form' ? (
+          <form onSubmit={handleCreateOrder} className="mt-8 space-y-6">
+            <div className="rounded-2xl border border-stone-100 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-stone-900">Contact</h2>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-stone-700">Full name</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="mt-1 w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none transition focus:border-orange-700 focus:bg-white focus:ring-1 focus:ring-orange-700"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-stone-700">Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="mt-1 w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none transition focus:border-orange-700 focus:bg-white focus:ring-1 focus:ring-orange-700"
+                  />
+                </div>
+              </div>
             </div>
+
+            <div className="rounded-2xl border border-stone-100 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-stone-900">Order summary</h2>
+              <ul className="mt-4 space-y-3 text-sm text-stone-600">
+                {items.map((item) => (
+                  <li key={item.variantId} className="flex justify-between">
+                    <span>
+                      {item.quantity}x {item.title} &mdash; {item.variantTitle}
+                    </span>
+                    <span className="font-medium text-stone-900">
+                      ${(item.price * item.quantity).toFixed(2)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-4 flex justify-between border-t border-stone-100 pt-4 text-base font-semibold text-stone-900">
+                <span>Total</span>
+                <span>${total().toFixed(2)}</span>
+              </div>
+            </div>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
+            <button type="submit" className="btn-primary w-full">
+              Continue to payment
+            </button>
+          </form>
+        ) : (
+          <div className="mt-8">
+            <p className="text-sm text-stone-500">
+              Order <span className="font-medium text-stone-900">{orderId}</span>. Complete payment below.
+            </p>
+            {clientSecret && (
+              <div className="mt-4">
+                <Elements stripe={stripePromise} options={{ clientSecret }}>
+                  <PaymentForm orderId={orderId} />
+                </Elements>
+              </div>
+            )}
           </div>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-orange-700 py-3 font-medium text-white hover:bg-orange-800"
-          >
-            Continue to payment
-          </button>
-        </form>
-      ) : (
-        <div className="mt-6">
-          {clientSecret && (
-            <Elements stripe={stripePromise} options={{ clientSecret }}>
-              <PaymentForm orderId={orderId} />
-            </Elements>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
