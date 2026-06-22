@@ -13,7 +13,18 @@
   },
   "dependencies": {
     "@astrojs/node": "^10.1.4",
+    "@astrojs/react": "^5.0.7",
+    "@astrojs/tailwind": "^6.0.2",
     "@mugs/api-client": "workspace:*",
-    "astro": "^6.4.4"
+    "@stripe/react-stripe-js": "^6.6.0",
+    "@stripe/stripe-js": "^9.8.0",
+    "@tailwindcss/vite": "^4.3.1",
+    "astro": "^6.4.4",
+    "lucide-react": "^1.21.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-dropzone": "^15.0.0",
+    "tailwindcss": "^4.3.1",
+    "zustand": "^5.0.14"
   }
 }
