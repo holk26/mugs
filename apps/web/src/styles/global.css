@@ -14,8 +14,8 @@
     --color-border: #e7e5e4;
     --color-accent: #ea580c;
     --color-accent-hover: #c2410c;
-    --bg-accent-glow: radial-gradient(circle at 8% 5%, rgba(251, 146, 60, 0.18), transparent 35%);
-    --bg-sun-glow: radial-gradient(circle at 88% 0%, rgba(251, 191, 36, 0.2), transparent 30%);
+    --gradient-accent-glow: radial-gradient(circle at 8% 5%, rgba(251, 146, 60, 0.18), transparent 35%);
+    --gradient-sun-glow: radial-gradient(circle at 88% 0%, rgba(251, 191, 36, 0.2), transparent 30%);
     --bg-base-gradient: linear-gradient(180deg, #fff8f4 0%, #ffffff 35%, #fffdf8 100%);
   }
 
@@ -29,7 +29,7 @@
 
   body {
     @apply text-stone-900 antialiased;
-    background: var(--bg-accent-glow), var(--bg-sun-glow), var(--bg-base-gradient);
+    background: var(--gradient-accent-glow), var(--gradient-sun-glow), var(--bg-base-gradient);
     font-family: var(--font-sans);
   }
 }
