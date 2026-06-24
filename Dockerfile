@@ -18,8 +18,8 @@ RUN pnpm install --frozen-lockfile
 # Copiar todo el código fuente
 COPY . .
 
-# URL base de la API (build-time y runtime)
-ARG DJANGO_API_URL=http://django:8080
+# URL base de la API (must be public for browser requests)
+ARG DJANGO_API_URL=https://backshop.app.moonsbow.com
 ARG PUBLIC_STRIPE_PUBLISHABLE_KEY
 ENV DJANGO_API_URL=${DJANGO_API_URL}
 ENV PUBLIC_STRIPE_PUBLISHABLE_KEY=${PUBLIC_STRIPE_PUBLISHABLE_KEY}
