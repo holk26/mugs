@@ -1,9 +1,14 @@
 import { createRootRoute, Outlet, redirect } from '@tanstack/react-router';
 import { useAuthStore } from '@/stores/authStore';
 import { refreshToken } from '@/api/auth';
+import { AppLayout } from '@/components/layout/AppLayout';
 
 export const Route = createRootRoute({
-  component: RootComponent,
+  component: () => {
+    const isAuthenticated = !!useAuthStore((s) => s.accessToken);
+    if (!isAuthenticated) return <Outlet />;
+    return <AppLayout />;
+  },
   beforeLoad: async ({ location }) => {
     const publicRoutes = ['/login'];
     const isPublic = publicRoutes.includes(location.pathname);
@@ -29,7 +34,3 @@ export const Route = createRootRoute({
     }
   },
 });
-
-function RootComponent() {
-  return <Outlet />;
-}
