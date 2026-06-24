@@ -67,11 +67,11 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - DJANGO_API_URL=https://backshop.app.moonsbow.com
+        - PUBLIC_DJANGO_API_URL=https://backshop.app.moonsbow.com
         - PUBLIC_STRIPE_PUBLISHABLE_KEY=${PUBLIC_STRIPE_PUBLISHABLE_KEY}
     container_name: mugs-web
     environment:
-      - DJANGO_API_URL=https://backshop.app.moonsbow.com
+      - PUBLIC_DJANGO_API_URL=https://backshop.app.moonsbow.com
       - HOST=0.0.0.0
       - PORT=4321
       - PRINTFUL_WEBHOOK_SECRET=${PRINTFUL_WEBHOOK_SECRET:-}

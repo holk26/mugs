@@ -1,6 +1,5 @@
 const API_BASE =
-  import.meta.env.DJANGO_API_URL ||
-  import.meta.env.CORE_API_URL ||
+  import.meta.env.PUBLIC_DJANGO_API_URL ||
   'http://localhost:8080';
 
 export interface Product {

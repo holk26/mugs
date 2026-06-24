@@ -19,9 +19,9 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 # URL base de la API (must be public for browser requests)
-ARG DJANGO_API_URL=https://backshop.app.moonsbow.com
+ARG PUBLIC_DJANGO_API_URL=https://backshop.app.moonsbow.com
 ARG PUBLIC_STRIPE_PUBLISHABLE_KEY
-ENV DJANGO_API_URL=${DJANGO_API_URL}
+ENV PUBLIC_DJANGO_API_URL=${PUBLIC_DJANGO_API_URL}
 ENV PUBLIC_STRIPE_PUBLISHABLE_KEY=${PUBLIC_STRIPE_PUBLISHABLE_KEY}
 ENV HOST=0.0.0.0
 ENV PORT=4321
