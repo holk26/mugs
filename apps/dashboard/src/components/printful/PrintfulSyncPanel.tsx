@@ -38,7 +38,11 @@ export function PrintfulSyncPanel() {
           {mutation.isPending ? 'Sincronizando...' : 'Sincronizar ahora'}
         </Button>
       </div>
-      {mutation.isSuccess && <p className="text-sm text-green-700">Tarea encolada: {mutation.data.task_id}</p>}
+      {mutation.isSuccess && (
+        <p className="text-sm text-green-700">
+          Sync {mutation.data.status} · Creados: {mutation.data.created} · Actualizados: {mutation.data.updated}
+        </p>
+      )}
     </Card>
   );
 }

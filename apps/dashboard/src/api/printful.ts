@@ -11,7 +11,15 @@ export interface PrintfulSyncLog {
   errors: unknown[];
 }
 
-export async function syncPrintful(): Promise<{ task_id: string; status: string }> {
+export interface SyncPrintfulResult {
+  log_id: string;
+  status: string;
+  created: number;
+  updated: number;
+  errors: unknown[];
+}
+
+export async function syncPrintful(): Promise<SyncPrintfulResult> {
   const response = await apiClient.post('/api/v1/admin/printful/sync/');
   return response.data;
 }
