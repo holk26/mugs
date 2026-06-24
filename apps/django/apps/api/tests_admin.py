@@ -55,3 +55,36 @@ def test_sync_printful_catalog_task_creates_log():
     assert PrintfulSyncLog.objects.count() == 1
     assert result['created'] == 1
     assert result['updated'] == 2
+
+import uuid
+from rest_framework.test import APIClient
+from apps.products.models import Product
+from apps.orders.models import Order
+
+@pytest.fixture
+def admin_client():
+    user = User.objects.create_user(email='admin@test.com', username='admin@test.com', password='pass', is_staff=True)
+    client = APIClient()
+    client.force_authenticate(user=user)
+    return client
+
+@pytest.fixture
+def regular_client():
+    user = User.objects.create_user(email='user@test.com', username='user@test.com', password='pass', is_staff=False)
+    client = APIClient()
+    client.force_authenticate(user=user)
+    return client
+
+@pytest.mark.django_db
+def test_admin_products_list_requires_admin(admin_client, regular_client):
+    Product.objects.create(handle='mug-1', title='Mug 1', price=10, status='active')
+    assert admin_client.get('/api/v1/admin/products/').status_code == 200
+    assert regular_client.get('/api/v1/admin/products/').status_code == 403
+
+@pytest.mark.django_db
+def test_admin_orders_update_status(admin_client):
+    order = Order.objects.create(customer_email='a@b.com', total=10)
+    response = admin_client.patch(f'/api/v1/admin/orders/{order.id}/status/', {'status': 'paid'}, content_type='application/json')
+    assert response.status_code == 200
+    order.refresh_from_db()
+    assert order.status == 'paid'
