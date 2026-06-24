@@ -8,10 +8,13 @@
   },
   "scripts": {
     "dev": "pnpm --filter @mugs/web dev",
+    "dev:dashboard": "pnpm --filter @mugs/dashboard dev",
     "build": "pnpm --filter @mugs/web build",
+    "build:dashboard": "pnpm --filter @mugs/dashboard build",
     "preview": "pnpm --filter @mugs/web preview",
     "django": "cd apps/django && source .venv/bin/activate && python manage.py runserver 8080",
     "django:migrate": "cd apps/django && source .venv/bin/activate && python manage.py migrate",
-    "django:sync": "cd apps/django && source .venv/bin/activate && python manage.py sync_printful_catalog"
+    "django:sync": "cd apps/django && source .venv/bin/activate && python manage.py sync_printful_catalog",
+    "celery": "cd apps/django && source .venv/bin/activate && celery -A config worker -l info"
   }
 }
