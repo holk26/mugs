@@ -41,7 +41,7 @@ El backend ya tiene autenticación JWT (`/api/v1/auth/signin/`, `/api/v1/auth/re
 | UI components | Componentes propios con Tailwind (no MUI/Ant) |
 | Formularios | `react-hook-form` + `zod` |
 | Auth | JWT (`simplejwt`) + campo `is_staff` en `User` |
-| Almacenamiento de tokens | Access token en memoria (Zustand); refresh token en `localStorage` para MVP |
+| Almacenamiento de tokens | **Objetivo:** cookies `HttpOnly`/`Secure`/`SameSite=Strict` gestionadas por Django. **MVP pragmático:** access token en memoria (Zustand), refresh en `localStorage` solo si no se implementan cookies en la primera iteración, acompañado de CSP estricto en nginx. |
 | API backend | Nuevos endpoints bajo `/api/v1/admin/` usando ViewSets con permisos `IsAuthenticated` + `IsAdminUser` |
 | Despliegue | Servicio `dashboard` independiente en `docker-compose.yml`/`docker-compose.dokploy.yml`, servido con nginx |
 | Testing | Tests de ViewSets/serializadores en Django + tests de componentes/hooks con Vitest/RTL + smoke E2E con Playwright |
@@ -67,7 +67,7 @@ El backend ya tiene autenticación JWT (`/api/v1/auth/signin/`, `/api/v1/auth/re
 - **Rutas:** `@tanstack/react-router` con `beforeLoad` para guardar auth.
 - **Server state:** `@tanstack/react-query` con invalidación manual tras mutaciones.
 - **Local state:** `zustand` para auth, UI (toasts, sidebar, modales).
-- **Estilos:** Tailwind CSS 4, paleta coherente con `apps/web` pero más densa para tablas.
+- **Estilos:** Tailwind CSS 4 con el plugin oficial `@tailwindcss/vite`. Temas y tokens definidos con `@theme` y variables CSS en `src/styles/global.css`, sin `tailwind.config.js`.
 - **Iconos:** `lucide-react`.
 
 ### 4.2 Backend
@@ -123,7 +123,8 @@ El backend ya tiene autenticación JWT (`/api/v1/auth/signin/`, `/api/v1/auth/re
 ### 5.5 Printful
 
 - `/printful`:
-  - Botón "Sincronizar catálogo" que llama `POST /api/v1/admin/printful/sync/`.
+  - Botón "Sincronizar catálogo" que llama `POST /api/v1/admin/printful/sync/`. El backend encola la tarea (Celery/Django Q) y responde `202 Accepted` con el ID de la tarea.
+  - Polling controlado desde el frontend hacia `GET /api/v1/admin/printful/logs/` (cada 3-5 s) para mostrar progreso en tiempo real.
   - Tabla de `PrintfulSyncLog` con fecha, estado, mensajes.
   - Tabla de `PrintfulWebhookEvent` recientes.
 
@@ -146,8 +147,8 @@ Todos bajo `/api/v1/admin/` requieren `IsAuthenticated` + `IsAdminUser`.
 | GET | `/orders/` | Listar órdenes con filtros. |
 | GET/PATCH | `/orders/<id>/` | Ver/actualizar orden. |
 | GET | `/orders/<id>/lines/` | Líneas de orden. |
-| POST | `/printful/sync/` | Ejecutar sync de catálogo (tarea síncrona o queue). |
-| GET | `/printful/logs/` | Logs de sincronización. |
+| POST | `/printful/sync/` | Encolar tarea de sync de catálogo. Responde `202 Accepted` + `task_id`. |
+| GET | `/printful/logs/` | Logs de sincronización (usado para polling de progreso). |
 | GET | `/printful/webhooks/` | Eventos de webhook recibidos. |
 
 ### 6.1 Cambios en modelos
@@ -155,10 +156,36 @@ Todos bajo `/api/v1/admin/` requieren `IsAuthenticated` + `IsAdminUser`.
 - Añadir `is_staff = models.BooleanField(default=False)` a `apps/users/models.py`.
 - Actualizar migraciones.
 
-### 6.2 Cambios en settings
+### 6.2 Paginación, filtros y búsqueda
+
+Todos los ViewSets de listado deben incluir:
+
+```python
+from rest_framework.pagination import PageNumberPagination
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
+
+class AdminPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+class AdminProductViewSet(viewsets.ModelViewSet):
+    pagination_class = AdminPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['status', 'collections']
+    search_fields = ['title', 'handle', 'description']
+    ordering_fields = ['created_at', 'title', 'price']
+```
+
+El frontend enviará parámetros `page`, `page_size`, `search`, `ordering` y filtros correspondientes.
+
+### 6.3 Cambios en settings
 
 - Añadir origen del dashboard a `CORS_ALLOWED_ORIGINS`.
 - Asegurar `DEFAULT_AUTHENTICATION_CLASSES` incluya `JWTAuthentication`.
+- Configurar cola de tareas (Celery con Redis/RabbitMQ o Django Q) para el sync de Printful.
+- Configurar cookies JWT `HttpOnly`/`Secure`/`SameSite=Strict` cuando se elija ese modo de auth.
 
 ---
 
@@ -212,23 +239,37 @@ apps/dashboard/
 
 ## 8. Flujo de autenticación
 
+### 8.1 Login
+
 1. Usuario envía `POST /api/v1/auth/signin/`.
-2. Backend responde `{ access, refresh, user }`.
-3. Frontend guarda `access` en `authStore` (memoria) y `refresh` en `localStorage`.
+2. Backend responde `{ access, refresh, user }` (o setea cookies `HttpOnly`).
+3. Frontend guarda `access` en `authStore` (memoria) y `refresh` en `localStorage` (si no hay cookies).
 4. Interceptor de axios añade `Authorization: Bearer <access>`.
 5. Ante `401`, se intenta refresh con `POST /api/v1/auth/refresh/`.
 6. Si refresh falla, se limpian tokens y se redirige a `/login`.
-7. `__root.tsx` verifica sesión en `beforeLoad`.
+
+### 8.2 Rehidratación tras F5 (anti "efecto F5")
+
+El guardián de rutas (`__root.tsx` `beforeLoad`) no debe confiar solo en el estado de Zustand:
+
+1. Verificar si existe `access` en memoria.
+2. Si no existe, revisar `refresh` en `localStorage` (o cookie httpOnly).
+3. Si hay refresh token, pausar la navegación y llamar silenciosamente a `/api/v1/auth/refresh/`.
+4. Si el refresh es exitoso, guardar el nuevo `access` en Zustand y continuar.
+5. Si falla, redirigir a `/login`.
+
+Esto garantiza que la sesión sobreviva a recargas de página.
 
 ---
 
-## 9. Manejo de errores
+## 9. Manejo de errores y seguridad
 
 - **Errores de red:** retry automático (3 intentos) con TanStack Query.
 - **Errores de API (4xx/5xx):** toasts con mensaje del backend.
 - **Validación de formularios:** `zod` en frontend; errores de campo mostrados junto a inputs.
 - **Auth:** 403 muestra página de acceso denegado.
 - **Errores de renderizado:** `ErrorBoundary` de TanStack Router con fallback amigable.
+- **Seguridad de tokens:** si se usa `localStorage` para el refresh token en el MVP, el `nginx.conf` del dashboard debe incluir una **Content Security Policy (CSP)** estricta para mitigar riesgos XSS. La configuración ideal es usar cookies `HttpOnly`/`Secure`/`SameSite=Strict` gestionadas por Django.
 
 ---
 
@@ -274,3 +315,5 @@ apps/dashboard/
 - Reutilizar estilos base de `apps/web` cuando sea posible, pero mantener la densidad de datos del admin.
 - No modificar la API pública existente de `apps/web`; solo añadir endpoints admin.
 - Mantener `packages/api-client` como legacy; el dashboard usa su propio cliente en `src/api/`.
+- Configurar Tailwind CSS 4 con `@tailwindcss/vite` en `vite.config.ts` y temas mediante `@theme` en `src/styles/global.css`.
+- Implementar cola de tareas desde el inicio para el sync de Printful; nunca ejecutar sync síncrono dentro del request/response.
