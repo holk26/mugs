@@ -41,6 +41,8 @@ services:
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
       - RESEND_API_KEY=${RESEND_API_KEY:-}
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-orders@recuerdomomentos.com}
+      - ADMIN_EMAIL=${USER}
+      - ADMIN_PASSWORD=${PASSWORK}
     ports:
       - "8080:8080"
     depends_on:
@@ -129,6 +131,8 @@ services:
       - PRINTFUL_STORE_ID=${PRINTFUL_STORE_ID:-}
       - PRINTFUL_WEBHOOK_SECRET=${PRINTFUL_WEBHOOK_SECRET:-}
       - PRINTFUL_BASE_URL=${PRINTFUL_BASE_URL:-https://api.printful.com}
+      - ADMIN_EMAIL=${USER}
+      - ADMIN_PASSWORD=${PASSWORK}
     depends_on:
       - db
       - redis
