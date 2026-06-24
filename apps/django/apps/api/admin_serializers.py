@@ -1,0 +1,86 @@
+from rest_framework import serializers
+from apps.products.models import Product, ProductVariant, ProductMedia, Collection
+from apps.orders.models import Order, OrderLine
+from apps.printful.models import PrintfulSyncLog, PrintfulWebhookEvent
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'first_name', 'last_name', 'is_staff', 'date_joined']
+
+
+class AdminProductMediaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductMedia
+        fields = ['id', 'type', 'url', 'alt', 'order']
+
+
+class AdminProductVariantSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductVariant
+        fields = [
+            'id', 'title', 'sku', 'price', 'compare_at_price', 'stock',
+            'options', 'active', 'printful_sync_variant_id', 'printful_variant_id',
+            'created_at', 'updated_at'
+        ]
+
+
+class AdminProductListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['id', 'handle', 'title', 'price', 'status', 'created_at']
+
+
+class AdminProductDetailSerializer(serializers.ModelSerializer):
+    medias = AdminProductMediaSerializer(many=True, read_only=True)
+    variants = AdminProductVariantSerializer(many=True, read_only=True)
+    collections = serializers.PrimaryKeyRelatedField(many=True, queryset=Collection.objects.all(), required=False)
+
+    class Meta:
+        model = Product
+        fields = [
+            'id', 'handle', 'title', 'description', 'status',
+            'tags', 'price', 'compare_at_price', 'collections',
+            'medias', 'variants', 'created_at', 'updated_at'
+        ]
+
+
+class AdminOrderLineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderLine
+        fields = ['id', 'variant', 'title', 'quantity', 'price', 'customer_upload']
+
+
+class AdminOrderSerializer(serializers.ModelSerializer):
+    lines = AdminOrderLineSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = [
+            'id', 'status', 'customer_email', 'customer_name',
+            'total', 'currency', 'shipping_address', 'lines',
+            'printful_order_id', 'printful_status', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['total', 'printful_order_id', 'printful_status']
+
+
+class AdminOrderStatusUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['status']
+
+
+class AdminPrintfulSyncLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PrintfulSyncLog
+        fields = ['id', 'started_at', 'finished_at', 'status', 'products_created', 'products_updated', 'errors']
+
+
+class AdminPrintfulWebhookEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PrintfulWebhookEvent
+        fields = ['id', 'event_type', 'payload', 'processed', 'created_at']

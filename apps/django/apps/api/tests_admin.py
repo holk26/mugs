@@ -2,6 +2,8 @@ import pytest
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIRequestFactory
 from apps.api.permissions import IsAdminUser
+from apps.api.admin_serializers import AdminProductListSerializer
+from apps.products.models import Product
 
 User = get_user_model()
 
@@ -30,3 +32,10 @@ def test_signin_returns_user_and_is_staff(client):
     assert response.status_code == 200
     assert response.json()['user']['email'] == 'admin@test.com'
     assert response.json()['user']['is_staff'] is True
+
+
+@pytest.mark.django_db
+def test_admin_product_list_serializer():
+    product = Product.objects.create(handle='test-mug', title='Test Mug', price=15.00, status='active')
+    serializer = AdminProductListSerializer(product)
+    assert serializer.data['title'] == 'Test Mug'
