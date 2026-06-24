@@ -31,7 +31,7 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - ALLOWED_HOSTS=backshop.app.moonsbow.com,django,localhost,127.0.0.1
-      - CORS_ALLOWED_ORIGINS=https://mugs.app.moonsbow.com,http://localhost:4321
+      - CORS_ALLOWED_ORIGINS=https://mugs.app.moonsbow.com,https://dashboar-back.app.moonsbow.com,http://localhost:4321,http://localhost:5173
       - PRINTFUL_API_TOKEN=${PRINTFUL_API_TOKEN}
       - PRINTFUL_STORE_ID=${PRINTFUL_STORE_ID:-}
       - PRINTFUL_WEBHOOK_SECRET=${PRINTFUL_WEBHOOK_SECRET:-}
@@ -93,10 +93,10 @@ services:
       context: .
       dockerfile: apps/dashboard/Dockerfile
       args:
-        - VITE_API_URL=http://django:8080
+        - VITE_API_URL=https://backshop.app.moonsbow.com
     container_name: mugs-dashboard
     environment:
-      - VITE_API_URL=http://django:8080
+      - VITE_API_URL=https://backshop.app.moonsbow.com
     networks:
       - dokploy-network
     depends_on:
@@ -105,7 +105,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=dokploy-network"
-      - "traefik.http.routers.mugs-dashboard.rule=Host(`admin.app.moonsbow.com`)"
+      - "traefik.http.routers.mugs-dashboard.rule=Host(`dashboar-back.app.moonsbow.com`)"
       - "traefik.http.routers.mugs-dashboard.entrypoints=websecure"
       - "traefik.http.routers.mugs-dashboard.tls.certResolver=letsencrypt"
       - "traefik.http.routers.mugs-dashboard.service=mugs-dashboard-service"
@@ -124,7 +124,7 @@ services:
       - SECRET_KEY=${DJANGO_SECRET_KEY:-dev-secret-key}
       - DEBUG=False
       - ALLOWED_HOSTS=backshop.app.moonsbow.com,django,localhost,127.0.0.1
-      - CORS_ALLOWED_ORIGINS=https://mugs.app.moonsbow.com,https://admin.app.moonsbow.com,http://localhost:4321,http://localhost:5173
+      - CORS_ALLOWED_ORIGINS=https://mugs.app.moonsbow.com,https://dashboar-back.app.moonsbow.com,http://localhost:4321,http://localhost:5173
       - PRINTFUL_API_TOKEN=${PRINTFUL_API_TOKEN}
       - PRINTFUL_STORE_ID=${PRINTFUL_STORE_ID:-}
       - PRINTFUL_WEBHOOK_SECRET=${PRINTFUL_WEBHOOK_SECRET:-}
