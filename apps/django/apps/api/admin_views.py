@@ -115,8 +115,30 @@ class AdminPrintfulViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['post'], url_path='sync')
     def sync(self, request):
-        task = sync_printful_catalog.delay()
-        return Response({'task_id': task.id, 'status': 'queued'}, status=status.HTTP_202_ACCEPTED)
+        from apps.printful.sync import CatalogSync
+        from django.utils import timezone
+
+        log = PrintfulSyncLog.objects.create(status='running')
+        try:
+            result = CatalogSync().run()
+            log.status = 'completed' if not result['errors'] else 'completed_with_errors'
+            log.products_created = result['created']
+            log.products_updated = result['updated']
+            log.errors = result['errors']
+        except Exception as exc:
+            log.status = 'failed'
+            log.errors = [{'error': str(exc)}]
+        finally:
+            log.finished_at = timezone.now()
+            log.save()
+
+        return Response({
+            'log_id': str(log.id),
+            'status': log.status,
+            'created': log.products_created,
+            'updated': log.products_updated,
+            'errors': log.errors,
+        }, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], url_path='logs')
     def logs(self, request):
