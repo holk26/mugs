@@ -1,9 +1,14 @@
 import pytest
+import uuid
+from unittest.mock import patch, MagicMock
 from django.contrib.auth import get_user_model
-from rest_framework.test import APIRequestFactory
+from rest_framework.test import APIRequestFactory, APIClient
 from apps.api.permissions import IsAdminUser
 from apps.api.admin_serializers import AdminProductListSerializer
+from apps.api.tasks import sync_printful_catalog
 from apps.products.models import Product
+from apps.orders.models import Order
+from apps.printful.models import PrintfulSyncLog
 
 User = get_user_model()
 
@@ -39,3 +44,14 @@ def test_admin_product_list_serializer():
     product = Product.objects.create(handle='test-mug', title='Test Mug', price=15.00, status='active')
     serializer = AdminProductListSerializer(product)
     assert serializer.data['title'] == 'Test Mug'
+
+
+@pytest.mark.django_db
+def test_sync_printful_catalog_task_creates_log():
+    mock_sync = MagicMock()
+    mock_sync.run.return_value = {'created': 1, 'updated': 2, 'errors': []}
+    with patch('apps.api.tasks.CatalogSync', return_value=mock_sync):
+        result = sync_printful_catalog()
+    assert PrintfulSyncLog.objects.count() == 1
+    assert result['created'] == 1
+    assert result['updated'] == 2
