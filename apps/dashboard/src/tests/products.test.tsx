@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryHistory, createRouter } from '@tanstack/react-router';
 import { routeTree } from '../routeTree.gen';
@@ -39,5 +39,18 @@ describe('ProductsPage', () => {
       </QueryClientProvider>
     );
     expect(await screen.findByText('Mug')).toBeInTheDocument();
+  });
+});
+
+import { ProductForm } from '@/components/products/ProductForm';
+
+describe('ProductForm', () => {
+  it('shows validation errors', async () => {
+    const onSubmit = vi.fn();
+    render(<ProductForm onSubmit={onSubmit} />);
+    fireEvent.click(screen.getByText('Guardar'));
+    await waitFor(() => {
+      expect(screen.getByText('El título es requerido')).toBeInTheDocument();
+    });
   });
 });
