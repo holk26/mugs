@@ -107,6 +107,7 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:4321,http://localhost:5173').split(',')
+CORS_ALLOW_CREDENTIALS = True
 
 PRINTFUL_API_TOKEN = os.environ.get('PRINTFUL_API_TOKEN', '')
 PRINTFUL_STORE_ID = os.environ.get('PRINTFUL_STORE_ID', '')
