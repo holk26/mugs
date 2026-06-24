@@ -15,7 +15,7 @@ export const Route = createFileRoute('/login')({
   },
 });
 
-function LoginPage() {
+export function LoginPage() {
   const { register, handleSubmit, formState: { errors } } = useForm<SignInInput>({
     resolver: zodResolver(signInSchema),
   });
@@ -36,13 +36,13 @@ function LoginPage() {
         <h1 className="mb-6 text-2xl font-bold text-stone-900">Admin Recuerdo Momentos</h1>
         <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
           <div>
-            <label className="label">Email</label>
-            <input {...register('email')} type="email" className="input" />
+            <label htmlFor="email" className="label">Email</label>
+            <input {...register('email')} id="email" type="email" className="input" />
             {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
           </div>
           <div>
-            <label className="label">Contraseña</label>
-            <input {...register('password')} type="password" className="input" />
+            <label htmlFor="password" className="label">Contraseña</label>
+            <input {...register('password')} id="password" type="password" className="input" />
             {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
           </div>
           {mutation.isError && <p className="text-sm text-red-600">Credenciales inválidas</p>}
