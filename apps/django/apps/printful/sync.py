@@ -65,17 +65,16 @@ class CatalogSync:
             self.updated += 1
 
         # Sync variants
-        incoming_handles = set()
+        incoming_sync_ids = set()
 
         for sync_variant in sync_variants:
             variant_data = printful_sync_variant_to_variant(sync_variant, sync_product)
-            incoming_handles.add(variant_data['handle'])
+            incoming_sync_ids.add(variant_data['printful_sync_variant_id'])
 
             variant, _ = ProductVariant.objects.update_or_create(
                 product=product,
                 printful_sync_variant_id=variant_data['printful_sync_variant_id'],
                 defaults={
-                    'handle': variant_data['handle'],
                     'title': variant_data['title'],
                     'price': variant_data['price'],
                     'stock': variant_data['stock'],
@@ -91,7 +90,7 @@ class CatalogSync:
                 product.save(update_fields=['price'])
 
         # Remove variants no longer in Printful
-        product.variants.exclude(handle__in=incoming_handles).delete()
+        product.variants.exclude(printful_sync_variant_id__in=incoming_sync_ids).delete()
 
         # Sync media from first active variant
         for sync_variant in sync_variants:
