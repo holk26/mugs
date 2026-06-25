@@ -1,7 +1,10 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getProduct, updateProduct } from '@/api/products';
-import { ProductForm } from '@/components/products/ProductForm';
+import { getProduct, updateProduct, type ProductDetail } from '@/api/products';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
+import { ProductGeneralTab } from '@/components/products/ProductGeneralTab';
+import { ProductVariantsTab } from '@/components/products/ProductVariantsTab';
+import { ProductMediaTab } from '@/components/products/ProductMediaTab';
 import type { ProductInput } from '@/lib/schemas';
 
 export const Route = createFileRoute('/products/$id')({
@@ -10,7 +13,6 @@ export const Route = createFileRoute('/products/$id')({
 
 function EditProductPage() {
   const { id } = Route.useParams();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -23,16 +25,32 @@ function EditProductPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['product', id] });
-      navigate({ to: '/products' });
     },
   });
 
   if (isLoading) return <p>Cargando...</p>;
 
+  const product = data as ProductDetail;
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-stone-900">Editar producto</h1>
-      <ProductForm defaultValues={data} onSubmit={(values) => mutation.mutate(values)} isLoading={mutation.isPending} />
+      <Tabs defaultValue="general">
+        <TabsList>
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="variants">Variantes</TabsTrigger>
+          <TabsTrigger value="media">Medios</TabsTrigger>
+        </TabsList>
+        <TabsContent value="general">
+          <ProductGeneralTab product={product} onSubmit={(values) => mutation.mutate(values)} isLoading={mutation.isPending} />
+        </TabsContent>
+        <TabsContent value="variants">
+          <ProductVariantsTab productId={id} />
+        </TabsContent>
+        <TabsContent value="media">
+          <ProductMediaTab productId={id} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
