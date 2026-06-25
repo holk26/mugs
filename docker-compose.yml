@@ -43,13 +43,14 @@ services:
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-orders@recuerdomomentos.com}
       - ADMIN_EMAIL=${USER}
       - ADMIN_PASSWORD=${PASSWORK}
+      - MEDIA_ROOT=/app/media
     ports:
       - "8080:8080"
     depends_on:
       - db
       - redis
     volumes:
-      - django-media:/app/storage/media
+      - ./media:/app/media
     networks:
       - dokploy-network
     restart: unless-stopped
@@ -61,6 +62,12 @@ services:
       - "traefik.http.routers.backstore.tls.certResolver=letsencrypt"
       - "traefik.http.routers.backstore.service=backstore-service"
       - "traefik.http.services.backstore-service.loadbalancer.server.port=8080"
+      - "traefik.http.routers.mugs-media.rule=Host(`backshop.app.moonsbow.com`) && PathPrefix(`/media/`)"
+      - "traefik.http.routers.mugs-media.entrypoints=websecure"
+      - "traefik.http.routers.mugs-media.tls=true"
+      - "traefik.http.routers.mugs-media.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.mugs-media.service=mugs-media-service"
+      - "traefik.http.services.mugs-media-service.loadbalancer.server.port=8080"
 
   web:
     build:
@@ -142,7 +149,6 @@ services:
 
 volumes:
   postgres-data:
-  django-media:
 
 networks:
   dokploy-network:
