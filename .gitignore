@@ -44,3 +44,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
+# TypeScript incremental build info and emitted config files
+*.tsbuildinfo
+apps/dashboard/vite.config.d.ts
+apps/dashboard/vite.config.js
