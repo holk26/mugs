@@ -2,6 +2,8 @@ import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { TagsInput } from '@/components/ui/TagsInput';
+import { CollectionSelect } from '@/components/ui/CollectionSelect';
 import { productSchema, type ProductInput } from '@/lib/schemas';
 
 interface ProductFormProps {
@@ -11,13 +13,18 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ defaultValues, onSubmit, isLoading }: ProductFormProps) {
-  const { register, handleSubmit, formState: { errors } } = useForm<ProductInput>({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<ProductInput>({
     resolver: zodResolver(productSchema) as Resolver<ProductInput>,
     defaultValues: {
       status: 'draft',
+      tags: [],
+      collections: [],
       ...defaultValues,
     },
   });
+
+  const tags = watch('tags') || [];
+  const collections = watch('collections') || [];
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl space-y-6">
@@ -52,6 +59,14 @@ export function ProductForm({ defaultValues, onSubmit, isLoading }: ProductFormP
           <option value="active">Activo</option>
           <option value="archived">Archivado</option>
         </select>
+      </div>
+      <div>
+        <label className="label">Tags</label>
+        <TagsInput value={tags} onChange={(v) => setValue('tags', v)} />
+      </div>
+      <div>
+        <label className="label">Colecciones</label>
+        <CollectionSelect value={collections} onChange={(v) => setValue('collections', v)} />
       </div>
       <div className="flex gap-4">
         <Button type="submit" disabled={isLoading}>{isLoading ? 'Guardando...' : 'Guardar'}</Button>
