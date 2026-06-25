@@ -39,3 +39,8 @@ docker-volumes/
 # internal planning docs
 docs/superpowers/
 
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+

@@ -7,11 +7,15 @@ from apps.products.models import ProductVariant
 class Order(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
+        ('processing', 'Processing'),  # legacy, kept for backward compatibility
+        ('processing_ai', 'Processing AI'),
+        ('in_curation', 'In Curation'),
+        ('approved', 'Approved'),
+        ('sent_to_production', 'Sent to Production'),
         ('paid', 'Paid'),
-        ('processing', 'Processing'),
         ('fulfilled', 'Fulfilled'),
-        ('cancelled', 'Cancelled'),
         ('failed', 'Failed'),
+        ('cancelled', 'Cancelled'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -41,4 +45,10 @@ class OrderLine(models.Model):
         blank=True,
         null=True,
         help_text='Customer drawing to be printed on the mug'
+    )
+    processed_upload = models.FileField(
+        upload_to='drawings/processed/%Y/%m/%d/',
+        blank=True,
+        null=True,
+        help_text='AI-processed drawing ready for production'
     )

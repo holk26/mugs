@@ -6,7 +6,7 @@ from apps.products.models import ProductVariant
 class OrderLineSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderLine
-        fields = ['id', 'variant', 'title', 'quantity', 'price', 'customer_upload']
+        fields = ['id', 'variant', 'title', 'quantity', 'price', 'customer_upload', 'processed_upload']
         read_only_fields = ['title', 'price']
 
 
