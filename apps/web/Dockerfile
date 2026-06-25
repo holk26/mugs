@@ -23,6 +23,10 @@ ENV CORE_API_URL=http://core:8000
 ENV HOST=0.0.0.0
 ENV PORT=4321
 
+# Stripe publishable key (build-time public env)
+ARG PUBLIC_STRIPE_PUBLISHABLE_KEY
+ENV PUBLIC_STRIPE_PUBLISHABLE_KEY=${PUBLIC_STRIPE_PUBLISHABLE_KEY}
+
 # Compilar la aplicación
 RUN pnpm --filter @mugs/web build
 
