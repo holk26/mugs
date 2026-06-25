@@ -10,6 +10,13 @@ export interface Product {
   created_at: string;
 }
 
+export interface ProductDetail extends Product {
+  description: string;
+  compare_at_price: number | null;
+  tags: string[];
+  collections: string[];
+}
+
 export interface PaginatedResponse<T> {
   count: number;
   next: string | null;
@@ -22,8 +29,8 @@ export async function listProducts(params?: Record<string, unknown>): Promise<Pa
   return response.data;
 }
 
-export async function getProduct(id: string) {
-  const response = await apiClient.get(`/api/v1/admin/products/${id}/`);
+export async function getProduct(id: string): Promise<ProductDetail> {
+  const response = await apiClient.get<ProductDetail>(`/api/v1/admin/products/${id}/`);
   return response.data;
 }
 
