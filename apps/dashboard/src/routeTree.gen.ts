@@ -16,6 +16,7 @@ import { Route as PrintfulIndexRouteImport } from './routes/printful.index'
 import { Route as OrdersIndexRouteImport } from './routes/orders.index'
 import { Route as ProductsNewRouteImport } from './routes/products.new'
 import { Route as ProductsIdRouteImport } from './routes/products.$id'
+import { Route as PrintfulWebhooksRouteImport } from './routes/printful.webhooks'
 import { Route as OrdersIdRouteImport } from './routes/orders.$id'
 
 const LoginRoute = LoginRouteImport.update({
@@ -53,6 +54,11 @@ const ProductsIdRoute = ProductsIdRouteImport.update({
   path: '/products/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrintfulWebhooksRoute = PrintfulWebhooksRouteImport.update({
+  id: '/printful/webhooks',
+  path: '/printful/webhooks',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrdersIdRoute = OrdersIdRouteImport.update({
   id: '/orders/$id',
   path: '/orders/$id',
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/orders/$id': typeof OrdersIdRoute
+  '/printful/webhooks': typeof PrintfulWebhooksRoute
   '/products/$id': typeof ProductsIdRoute
   '/products/new': typeof ProductsNewRoute
   '/orders/': typeof OrdersIndexRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/orders/$id': typeof OrdersIdRoute
+  '/printful/webhooks': typeof PrintfulWebhooksRoute
   '/products/$id': typeof ProductsIdRoute
   '/products/new': typeof ProductsNewRoute
   '/orders': typeof OrdersIndexRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/orders/$id': typeof OrdersIdRoute
+  '/printful/webhooks': typeof PrintfulWebhooksRoute
   '/products/$id': typeof ProductsIdRoute
   '/products/new': typeof ProductsNewRoute
   '/orders/': typeof OrdersIndexRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/orders/$id'
+    | '/printful/webhooks'
     | '/products/$id'
     | '/products/new'
     | '/orders/'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/orders/$id'
+    | '/printful/webhooks'
     | '/products/$id'
     | '/products/new'
     | '/orders'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/orders/$id'
+    | '/printful/webhooks'
     | '/products/$id'
     | '/products/new'
     | '/orders/'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   OrdersIdRoute: typeof OrdersIdRoute
+  PrintfulWebhooksRoute: typeof PrintfulWebhooksRoute
   ProductsIdRoute: typeof ProductsIdRoute
   ProductsNewRoute: typeof ProductsNewRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
@@ -185,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/printful/webhooks': {
+      id: '/printful/webhooks'
+      path: '/printful/webhooks'
+      fullPath: '/printful/webhooks'
+      preLoaderRoute: typeof PrintfulWebhooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/orders/$id': {
       id: '/orders/$id'
       path: '/orders/$id'
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   OrdersIdRoute: OrdersIdRoute,
+  PrintfulWebhooksRoute: PrintfulWebhooksRoute,
   ProductsIdRoute: ProductsIdRoute,
   ProductsNewRoute: ProductsNewRoute,
   OrdersIndexRoute: OrdersIndexRoute,
