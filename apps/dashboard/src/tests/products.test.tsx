@@ -42,12 +42,20 @@ describe('ProductsPage', () => {
   });
 });
 
+vi.mock('@/api/collections', () => ({
+  listCollections: vi.fn().mockResolvedValue({ count: 0, next: null, previous: null, results: [] }),
+}));
+
 import { ProductForm } from '@/components/products/ProductForm';
 
 describe('ProductForm', () => {
   it('shows validation errors', async () => {
     const onSubmit = vi.fn();
-    render(<ProductForm onSubmit={onSubmit} />);
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ProductForm onSubmit={onSubmit} />
+      </QueryClientProvider>
+    );
     fireEvent.click(screen.getByText('Guardar'));
     await waitFor(() => {
       expect(screen.getByText('El título es requerido')).toBeInTheDocument();
