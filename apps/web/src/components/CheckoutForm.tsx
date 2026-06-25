@@ -15,6 +15,8 @@ import {
   type OrderLine,
 } from '../lib/api';
 import { Lock } from 'lucide-react';
+import { AddressForm, type AddressFormData } from './AddressForm';
+import { countryByCode } from '@/lib/countries';
 
 const stripePromise = loadStripe(import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -71,18 +73,50 @@ export default function CheckoutForm() {
   const { items, total } = useCart();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
-  const [step, setStep] = useState<'form' | 'payment'>('form');
+  const [shippingStep, setShippingStep] = useState<'shipping' | 'payment'>('shipping');
+  const [shippingAddress, setShippingAddress] = useState<AddressFormData>({
+    address1: '',
+    city: '',
+    state_code: '',
+    zip: '',
+    country_code: '',
+  });
   const [clientSecret, setClientSecret] = useState('');
   const [orderId, setOrderId] = useState('');
   const [error, setError] = useState('');
 
+  const isAddressValid = () => {
+    return (
+      shippingAddress.address1.trim().length > 0 &&
+      shippingAddress.city.trim().length > 0 &&
+      shippingAddress.state_code.trim().length > 0 &&
+      shippingAddress.zip.trim().length > 0 &&
+      shippingAddress.country_code.trim().length > 0
+    );
+  };
+
   const handleCreateOrder = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!email || items.length === 0) return;
+    if (!email || items.length === 0 || !isAddressValid()) return;
 
     setError('');
     try {
-      const order = await createOrder(items, { email, name });
+      const order = await createOrder({
+        customer_name: name,
+        customer_email: email,
+        shipping_address: {
+          name,
+          address1: shippingAddress.address1,
+          city: shippingAddress.city,
+          state_code: shippingAddress.state_code,
+          zip: shippingAddress.zip,
+          country_code: shippingAddress.country_code,
+        },
+        lines: items.map((item) => ({
+          variant: item.variantId,
+          quantity: item.quantity,
+        })),
+      });
       setOrderId(order.id);
 
       for (const item of items) {
@@ -95,13 +129,13 @@ export default function CheckoutForm() {
 
       const intent = await createPaymentIntent(order.id);
       setClientSecret(intent.client_secret);
-      setStep('payment');
+      setShippingStep('payment');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Checkout failed');
     }
   };
 
-  if (items.length === 0 && step === 'form') {
+  if (items.length === 0 && shippingStep === 'shipping') {
     return (
       <div className="section py-20 text-center">
         <p className="text-stone-600">Your cart is empty.</p>
@@ -112,12 +146,14 @@ export default function CheckoutForm() {
     );
   }
 
+  const selectedCountry = countryByCode(shippingAddress.country_code);
+
   return (
     <div className="section py-12 md:py-20">
       <div className="mx-auto max-w-2xl">
         <h1 className="text-3xl font-semibold tracking-tight text-stone-900">Checkout</h1>
 
-        {step === 'form' ? (
+        {shippingStep === 'shipping' ? (
           <form onSubmit={handleCreateOrder} className="mt-8 space-y-6">
             <div className="rounded-2xl border border-stone-100 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-stone-900">Contact</h2>
@@ -146,6 +182,16 @@ export default function CheckoutForm() {
             </div>
 
             <div className="rounded-2xl border border-stone-100 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-stone-900">Shipping address</h2>
+              <div className="mt-4">
+                <AddressForm
+                  value={shippingAddress}
+                  onChange={setShippingAddress}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-stone-100 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-stone-900">Order summary</h2>
               <ul className="mt-4 space-y-3 text-sm text-stone-600">
                 {items.map((item) => (
@@ -163,26 +209,53 @@ export default function CheckoutForm() {
                 <span>Total</span>
                 <span>${total().toFixed(2)}</span>
               </div>
+
+              {isAddressValid() && (
+                <div className="mt-4 border-t border-stone-100 pt-4">
+                  <h3 className="text-sm font-medium text-stone-700">Shipping to</h3>
+                  <address className="mt-1 not-italic text-sm text-stone-600">
+                    {name}
+                    <br />
+                    {shippingAddress.address1}
+                    <br />
+                    {shippingAddress.city}, {shippingAddress.state_code} {shippingAddress.zip}
+                    <br />
+                    {selectedCountry?.name || shippingAddress.country_code}
+                  </address>
+                </div>
+              )}
             </div>
 
             {error && <p className="text-sm text-red-600">{error}</p>}
 
-            <button type="submit" className="btn-primary w-full">
+            <button
+              type="submit"
+              disabled={!email || !name || !isAddressValid()}
+              className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
+            >
               Continue to payment
             </button>
           </form>
         ) : (
-          <div className="mt-8">
-            <p className="text-sm text-stone-500">
-              Order <span className="font-medium text-stone-900">{orderId}</span>. Complete payment below.
-            </p>
+          <div className="mt-8 space-y-6">
+            <div className="rounded-2xl border border-stone-100 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-stone-900">Payment</h2>
+              <p className="mt-2 text-sm text-stone-500">
+                Order <span className="font-medium text-stone-900">{orderId}</span>. Complete payment below.
+              </p>
+            </div>
             {clientSecret && (
-              <div className="mt-4">
-                <Elements stripe={stripePromise} options={{ clientSecret }}>
-                  <PaymentForm orderId={orderId} />
-                </Elements>
-              </div>
+              <Elements stripe={stripePromise} options={{ clientSecret }}>
+                <PaymentForm orderId={orderId} />
+              </Elements>
             )}
+            <button
+              type="button"
+              onClick={() => setShippingStep('shipping')}
+              className="btn-secondary w-full"
+            >
+              Back to shipping
+            </button>
           </div>
         )}
       </div>
