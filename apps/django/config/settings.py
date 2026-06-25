@@ -84,6 +84,9 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.environ.get('MEDIA_ROOT', os.path.join(BASE_DIR, 'media'))
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'
@@ -113,10 +116,6 @@ PRINTFUL_API_TOKEN = os.environ.get('PRINTFUL_API_TOKEN', '')
 PRINTFUL_STORE_ID = os.environ.get('PRINTFUL_STORE_ID', '')
 PRINTFUL_WEBHOOK_SECRET = os.environ.get('PRINTFUL_WEBHOOK_SECRET', '')
 PRINTFUL_BASE_URL = os.environ.get('PRINTFUL_BASE_URL', 'https://api.printful.com')
-
-# Media files (customer drawing uploads)
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "storage" / "media"
 
 # Stripe
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")

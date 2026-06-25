@@ -16,7 +16,16 @@ class AdminUserSerializer(serializers.ModelSerializer):
 class AdminProductMediaSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductMedia
-        fields = ['id', 'type', 'url', 'alt', 'order']
+        fields = ['id', 'type', 'file', 'url', 'alt', 'order']
+        extra_kwargs = {
+            'url': {'required': False, 'allow_blank': True},
+        }
+
+
+class AdminCollectionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Collection
+        fields = ['id', 'handle', 'title', 'description', 'created_at', 'updated_at']
 
 
 class AdminProductVariantSerializer(serializers.ModelSerializer):

@@ -12,12 +12,13 @@ from apps.api.admin_serializers import (
     AdminProductDetailSerializer,
     AdminProductVariantSerializer,
     AdminProductMediaSerializer,
+    AdminCollectionSerializer,
     AdminOrderSerializer,
     AdminOrderStatusUpdateSerializer,
     AdminPrintfulSyncLogSerializer,
     AdminPrintfulWebhookEventSerializer,
 )
-from apps.products.models import Product, ProductVariant, ProductMedia
+from apps.products.models import Product, ProductVariant, ProductMedia, Collection
 from apps.orders.models import Order
 from apps.printful.models import PrintfulSyncLog, PrintfulWebhookEvent
 from apps.api.tasks import sync_printful_catalog
@@ -59,6 +60,17 @@ class AdminProductViewSet(viewsets.ModelViewSet):
         if self.action == 'retrieve':
             queryset = queryset.prefetch_related('medias', 'variants', 'collections')
         return queryset
+
+
+class AdminCollectionViewSet(viewsets.ModelViewSet):
+    queryset = Collection.objects.all().order_by('-created_at')
+    serializer_class = AdminCollectionSerializer
+    permission_classes = [IsAdminUser]
+    pagination_class = AdminPagination
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['title', 'handle']
+    ordering_fields = ['created_at', 'title']
+    lookup_field = 'id'
 
 
 class AdminProductVariantViewSet(viewsets.ModelViewSet):

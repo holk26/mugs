@@ -47,12 +47,17 @@ class ProductVariant(models.Model):
         return f"{self.product.title} - {self.title}"
 
 
+def product_media_upload_path(instance, filename):
+    return f'products/{instance.product.id}/media/{filename}'
+
+
 class ProductMedia(models.Model):
     MEDIA_TYPES = [('image', 'Image'), ('video', 'Video')]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     product = models.ForeignKey(Product, related_name='medias', on_delete=models.CASCADE)
     type = models.CharField(max_length=20, choices=MEDIA_TYPES, default='image')
+    file = models.ImageField(upload_to=product_media_upload_path, blank=True, null=True)
     url = models.URLField()
     alt = models.CharField(max_length=500, blank=True)
     order = models.PositiveIntegerField(default=0)
@@ -60,6 +65,11 @@ class ProductMedia(models.Model):
     class Meta:
         ordering = ['order']
         verbose_name_plural = 'product media'
+
+    def save(self, *args, **kwargs):
+        if self.file and not self.url:
+            self.url = self.file.url
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.alt or self.url

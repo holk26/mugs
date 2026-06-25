@@ -11,6 +11,7 @@ from .admin_views import (
     AdminProductViewSet,
     AdminProductVariantViewSet,
     AdminProductMediaViewSet,
+    AdminCollectionViewSet,
     AdminOrderViewSet,
     AdminPrintfulViewSet,
 )
@@ -23,6 +24,7 @@ router.register(r'orders', OrderViewSet, basename='order')
 admin_router = DefaultRouter()
 admin_router.register(r'users', AdminUserViewSet, basename='admin-user')
 admin_router.register(r'products', AdminProductViewSet, basename='admin-product')
+admin_router.register(r'collections', AdminCollectionViewSet, basename='admin-collection')
 admin_router.register(r'orders', AdminOrderViewSet, basename='admin-order')
 
 urlpatterns = [
