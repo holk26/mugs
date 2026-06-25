@@ -108,6 +108,7 @@ class CatalogSync:
 def push_order(order):
     """Push a paid order to Printful for fulfillment."""
     from django.db import transaction
+    from django.conf import settings
     from apps.products.models import ProductVariant
     from .transformers import storecraft_address_to_printful_recipient
 
@@ -123,11 +124,11 @@ def push_order(order):
                 'retail_price': str(line.price),
                 'files': [],
             }
-            if line.customer_upload:
-                absolute_url = line.customer_upload.url
+            upload_file = line.processed_upload or line.customer_upload
+            if upload_file:
+                absolute_url = upload_file.url
                 if absolute_url.startswith('/'):
-                    # TODO: replace with the real public domain / CDN
-                    absolute_url = f"https://mugs.app.moonsbow.com{absolute_url}"
+                    absolute_url = f"{settings.SITE_URL.rstrip('/')}{absolute_url}"
                 item['files'].append({
                     'url': absolute_url,
                     'type': 'default',

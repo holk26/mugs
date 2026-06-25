@@ -117,6 +117,8 @@ PRINTFUL_STORE_ID = os.environ.get('PRINTFUL_STORE_ID', '')
 PRINTFUL_WEBHOOK_SECRET = os.environ.get('PRINTFUL_WEBHOOK_SECRET', '')
 PRINTFUL_BASE_URL = os.environ.get('PRINTFUL_BASE_URL', 'https://api.printful.com')
 
+SITE_URL = os.environ.get("SITE_URL", "https://mugs.app.moonsbow.com")
+
 # Stripe
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")

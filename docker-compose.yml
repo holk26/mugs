@@ -44,6 +44,7 @@ services:
       - ADMIN_EMAIL=${USER}
       - ADMIN_PASSWORD=${PASSWORK}
       - MEDIA_ROOT=/app/media
+      - SITE_URL=${SITE_URL:-https://mugs.app.moonsbow.com}
     ports:
       - "8080:8080"
     depends_on:
