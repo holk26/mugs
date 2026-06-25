@@ -15,6 +15,7 @@ export const productSchema = z.object({
   price: z.coerce.number().min(0),
   compare_at_price: z.coerce.number().min(0).optional().nullable(),
   tags: z.array(z.string()).default([]),
+  collections: z.array(z.string()).default([]),
 });
 
 export type ProductInput = z.infer<typeof productSchema>;
