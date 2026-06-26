@@ -154,6 +154,14 @@ SITE_URL = os.environ.get("SITE_URL", "https://mugs.app.moonsbow.com")
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_CHECKOUT_SHIPPING_COUNTRIES = [
+    c.strip()
+    for c in os.environ.get(
+        "STRIPE_CHECKOUT_SHIPPING_COUNTRIES",
+        "US,CA,MX,ES,CO,AR,CL,PE,UY,PY,BO,EC,PA,CR,GT,HN,SV,NI,DO,PR",
+    ).split(",")
+    if c.strip()
+]
 
 # Resend / email
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")

@@ -21,6 +21,7 @@ from apps.api.admin_serializers import (
 from apps.products.models import Product, ProductVariant, ProductMedia, Collection
 from apps.orders.models import Order
 from apps.printful.models import PrintfulSyncLog, PrintfulWebhookEvent
+from apps.printful.sync import push_order, confirm_printful_order
 from apps.api.tasks import sync_printful_catalog
 
 User = get_user_model()
@@ -121,6 +122,40 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
         serializer = AdminOrderStatusUpdateSerializer(order, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        return Response(AdminOrderSerializer(order).data)
+
+    @action(detail=True, methods=['post'], url_path='printful/push')
+    def push_printful(self, request, id=None):
+        """Push the order to Printful as a draft for human review."""
+        order = self.get_object()
+        if order.printful_order_id:
+            return Response(
+                {'detail': 'Order already pushed to Printful.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            printful_id = push_order(order, confirm=False)
+        except Exception as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response({
+            'detail': 'Order pushed to Printful as draft.',
+            'printful_order_id': printful_id,
+        })
+
+    @action(detail=True, methods=['post'], url_path='printful/confirm')
+    def confirm_printful(self, request, id=None):
+        """Confirm a Printful draft order so it enters fulfillment."""
+        order = self.get_object()
+        if not order.printful_order_id:
+            return Response(
+                {'detail': 'Order has not been pushed to Printful yet.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            confirm_printful_order(order)
+        except Exception as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        order.refresh_from_db()
         return Response(AdminOrderSerializer(order).data)
 
 

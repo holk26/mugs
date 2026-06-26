@@ -9,6 +9,7 @@ from apps.api.tasks import sync_printful_catalog
 from apps.products.models import Product
 from apps.orders.models import Order
 from apps.printful.models import PrintfulSyncLog
+from apps.printful.sync import push_order, confirm_printful_order
 
 User = get_user_model()
 
@@ -88,3 +89,38 @@ def test_admin_orders_update_status(admin_client):
     assert response.status_code == 200
     order.refresh_from_db()
     assert order.status == 'paid'
+
+
+@pytest.mark.django_db
+@patch('apps.api.admin_views.push_order')
+def test_admin_push_order_to_printful(mock_push, admin_client):
+    mock_push.return_value = 'pf_12345'
+    order = Order.objects.create(customer_email='a@b.com', total=10, status='paid')
+    response = admin_client.post(f'/api/v1/admin/orders/{order.id}/printful/push/')
+    assert response.status_code == 200
+    assert response.json()['printful_order_id'] == 'pf_12345'
+    mock_push.assert_called_once_with(order, confirm=False)
+
+
+@pytest.mark.django_db
+def test_admin_push_order_to_printful_already_pushed(admin_client):
+    order = Order.objects.create(
+        customer_email='a@b.com', total=10, status='paid',
+        printful_order_id='pf_existing', printful_status='draft'
+    )
+    response = admin_client.post(f'/api/v1/admin/orders/{order.id}/printful/push/')
+    assert response.status_code == 400
+    assert 'already pushed' in response.json()['detail'].lower()
+
+
+@pytest.mark.django_db
+@patch('apps.api.admin_views.confirm_printful_order')
+def test_admin_confirm_printful_order(mock_confirm, admin_client):
+    mock_confirm.return_value = 'pending'
+    order = Order.objects.create(
+        customer_email='a@b.com', total=10, status='paid',
+        printful_order_id='pf_12345', printful_status='draft'
+    )
+    response = admin_client.post(f'/api/v1/admin/orders/{order.id}/printful/confirm/')
+    assert response.status_code == 200
+    mock_confirm.assert_called_once_with(order)

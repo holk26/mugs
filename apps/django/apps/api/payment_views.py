@@ -11,6 +11,23 @@ from apps.orders.models import Order
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
+def _stripe_address_to_order(address_obj):
+    """Convert a Stripe shipping/billing address object to our order format."""
+    if not address_obj:
+        return None
+    address = getattr(address_obj, 'address', address_obj)
+    name = getattr(address_obj, 'name', '') or ''
+    return {
+        'name': name,
+        'address1': getattr(address, 'line1', '') or '',
+        'address2': getattr(address, 'line2', '') or '',
+        'city': getattr(address, 'city', '') or '',
+        'state': getattr(address, 'state', '') or '',
+        'postal_code': getattr(address, 'postal_code', '') or '',
+        'country': getattr(address, 'country', '') or '',
+    }
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def payment_gateways(request):
@@ -72,6 +89,9 @@ def create_checkout_session(request):
             success_url=success_url,
             cancel_url=cancel_url,
             metadata={'order_id': str(order.id)},
+            shipping_address_collection={
+                'allowed_countries': settings.STRIPE_CHECKOUT_SHIPPING_COUNTRIES,
+            },
         )
     except stripe.error.StripeError as e:
         return Response({'detail': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
@@ -133,6 +153,23 @@ def stripe_webhook(request):
                 order.status = 'paid'
                 if payment_intent_id:
                     order.payment_intent_id = payment_intent_id
-                order.save(update_fields=['status', 'payment_intent_id'])
+
+            # Stripe Checkout collects the shipping address. Sync it back to the
+            # order so Printful fulfillment has the correct recipient data.
+            shipping = _stripe_address_to_order(getattr(event_obj, 'shipping_details', None))
+            if shipping:
+                order.shipping_address = shipping
+
+            customer = getattr(event_obj, 'customer_details', None)
+            if customer:
+                if getattr(customer, 'name', None):
+                    order.customer_name = customer.name
+                if getattr(customer, 'email', None):
+                    order.customer_email = customer.email
+
+            order.save(update_fields=[
+                'status', 'payment_intent_id', 'shipping_address',
+                'customer_name', 'customer_email',
+            ])
 
     return Response({'status': 'ok'})

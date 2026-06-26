@@ -1,6 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getOrder, updateOrderStatus, type OrderLine } from '@/api/orders';
+import {
+  getOrder,
+  updateOrderStatus,
+  pushOrderToPrintful,
+  confirmPrintfulOrder,
+  type OrderLine,
+} from '@/api/orders';
 import apiClient from '@/api/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -30,6 +36,22 @@ function OrderDetailPage() {
 
   const mutation = useMutation({
     mutationFn: (status: string) => updateOrderStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['order', id] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
+  });
+
+  const pushMutation = useMutation({
+    mutationFn: () => pushOrderToPrintful(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['order', id] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
+  });
+
+  const confirmMutation = useMutation({
+    mutationFn: () => confirmPrintfulOrder(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['order', id] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
@@ -125,6 +147,46 @@ function OrderDetailPage() {
         ) : (
           <p className="text-stone-500">No se ha registrado dirección de envío.</p>
         )}
+      </Card>
+
+      <Card>
+        <h2 className="mb-4 text-lg font-semibold">Printful</h2>
+        <div className="space-y-3">
+          <div className="text-sm">
+            <p>
+              <span className="text-stone-500">ID en Printful:</span>{' '}
+              {data.printful_order_id || 'Sin enviar'}
+            </p>
+            <p>
+              <span className="text-stone-500">Estado:</span>{' '}
+              {data.printful_status || '—'}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {!data.printful_order_id && (
+              <Button
+                onClick={() => pushMutation.mutate()}
+                disabled={pushMutation.isPending}
+              >
+                {pushMutation.isPending ? 'Enviando...' : 'Enviar borrador a Printful'}
+              </Button>
+            )}
+            {data.printful_order_id && data.printful_status !== 'pending' && (
+              <Button
+                variant="primary"
+                onClick={() => confirmMutation.mutate()}
+                disabled={confirmMutation.isPending}
+              >
+                {confirmMutation.isPending ? 'Confirmando...' : 'Confirmar envío a Printful'}
+              </Button>
+            )}
+          </div>
+          {(pushMutation.isError || confirmMutation.isError) && (
+            <p className="text-sm text-red-600">
+              Error: {(pushMutation.error || confirmMutation.error)?.message}
+            </p>
+          )}
+        </div>
       </Card>
 
       <Card>

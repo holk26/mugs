@@ -41,6 +41,8 @@ class TestStripeIntent:
         assert call_kwargs['success_url'].startswith(f'{base}/thanks?order=')
         assert '{CHECKOUT_SESSION_ID}' in call_kwargs['success_url']
         assert call_kwargs['cancel_url'].startswith(f'{base}/checkout?order=')
+        assert 'shipping_address_collection' in call_kwargs
+        assert call_kwargs['shipping_address_collection']['allowed_countries']
 
 
 @pytest.mark.django_db
@@ -70,6 +72,21 @@ class TestStripeWebhook:
                     'object': 'checkout.session',
                     'payment_intent': payment_intent,
                     'metadata': {'order_id': str(self.order.id)},
+                    'customer_details': {
+                        'name': 'Stripe Customer',
+                        'email': 'stripe@example.com',
+                    },
+                    'shipping_details': {
+                        'name': 'Shipping Name',
+                        'address': {
+                            'line1': '123 Main St',
+                            'line2': 'Apt 1',
+                            'city': 'Mexico City',
+                            'state': 'CDMX',
+                            'postal_code': '01000',
+                            'country': 'MX',
+                        },
+                    },
                 },
             },
         }
@@ -86,6 +103,17 @@ class TestStripeWebhook:
         self.order.refresh_from_db()
         assert self.order.status == 'paid'
         assert self.order.payment_intent_id == 'pi_test'
+        assert self.order.customer_name == 'Stripe Customer'
+        assert self.order.customer_email == 'stripe@example.com'
+        assert self.order.shipping_address == {
+            'name': 'Shipping Name',
+            'address1': '123 Main St',
+            'address2': 'Apt 1',
+            'city': 'Mexico City',
+            'state': 'CDMX',
+            'postal_code': '01000',
+            'country': 'MX',
+        }
 
     @patch('apps.api.payment_views.stripe.Webhook.construct_event')
     def test_webhook_is_idempotent(self, mock_construct):

@@ -62,5 +62,8 @@ class PrintfulClient:
     def create_order(self, payload, confirm=True):
         return self._request(f'/orders?confirm={1 if confirm else 0}', method='POST', body=payload)
 
+    def confirm_order(self, order_id):
+        return self._request(f'/orders/{order_id}/confirm', method='POST')
+
     def get_order(self, order_id):
         return self._request(f'/orders/{order_id}')

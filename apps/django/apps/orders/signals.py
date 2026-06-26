@@ -15,12 +15,11 @@ def handle_order_paid(sender, instance, created, **kwargs):
         return
 
     if instance.status == 'paid' and not instance.printful_order_id:
-        # In development or until manual approval is implemented, do not push
-        # automatically to Printful. This prevents test orders from being sent
-        # to production fulfillment.
+        # Even when auto-push is enabled, orders are sent to Printful as drafts.
+        # A human must confirm the draft from the dashboard before fulfillment.
         if getattr(settings, 'PRINTFUL_AUTO_PUSH', False):
             try:
-                push_order(instance)
+                push_order(instance, confirm=False)
             except Exception as exc:
                 logger.exception("Failed to push order %s to Printful: %s", instance.id, exc)
 

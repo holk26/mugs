@@ -35,6 +35,8 @@ export interface Order {
   raw_upload?: UploadFile | null;
   processed_upload?: UploadFile | null;
   lines?: OrderLine[];
+  printful_order_id?: string;
+  printful_status?: string;
 }
 
 export async function listOrders(params?: Record<string, unknown>): Promise<PaginatedResponse<Order>> {
@@ -49,5 +51,15 @@ export async function getOrder(id: string): Promise<Order> {
 
 export async function updateOrderStatus(id: string, status: string) {
   const response = await apiClient.patch(`/api/v1/admin/orders/${id}/status/`, { status });
+  return response.data;
+}
+
+export async function pushOrderToPrintful(id: string) {
+  const response = await apiClient.post(`/api/v1/admin/orders/${id}/printful/push/`);
+  return response.data;
+}
+
+export async function confirmPrintfulOrder(id: string) {
+  const response = await apiClient.post(`/api/v1/admin/orders/${id}/printful/confirm/`);
   return response.data;
 }
