@@ -49,3 +49,4 @@ __pycache__/
 *.tsbuildinfo
 apps/dashboard/vite.config.d.ts
 apps/dashboard/vite.config.js
+apps/django/media/

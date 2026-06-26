@@ -52,9 +52,8 @@ export interface Order {
   lines: OrderLine[];
 }
 
-export interface PaymentIntent {
-  client_secret: string;
-  publishable_key: string;
+export interface CheckoutSession {
+  url: string;
 }
 
 async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
@@ -77,26 +76,25 @@ export async function getProduct(handle: string): Promise<Product> {
   return fetchJson(`/api/v1/products/${handle}/?expand=medias,variants`);
 }
 
-export interface ShippingAddress {
-  name: string;
-  address1: string;
-  city: string;
-  state_code: string;
-  zip: string;
-  country_code: string;
-}
+export async function createOrder(
+  items: CartItem[],
+  customer: { email: string; name: string }
+): Promise<Order> {
+  const lines = items.map((item) => ({
+    variant: item.variantId,
+    title: `${item.title} — ${item.variantTitle}`,
+    quantity: item.quantity,
+    price: item.price.toFixed(2),
+  }));
 
-export interface CreateOrderPayload {
-  customer_name: string;
-  customer_email: string;
-  shipping_address: ShippingAddress;
-  lines: { variant: string; quantity: number }[];
-}
-
-export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
   return fetchJson('/api/v1/orders/', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      customer_email: customer.email,
+      customer_name: customer.name,
+      shipping_address: {},
+      lines,
+    }),
   });
 }
 
@@ -121,8 +119,8 @@ export async function uploadDrawing(
   return response.json();
 }
 
-export async function createPaymentIntent(orderId: string): Promise<PaymentIntent> {
-  return fetchJson('/api/v1/payments/stripe/intent/', {
+export async function createCheckoutSession(orderId: string): Promise<CheckoutSession> {
+  return fetchJson('/api/v1/payments/stripe/checkout/', {
     method: 'POST',
     body: JSON.stringify({ order_id: orderId }),
   });

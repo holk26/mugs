@@ -23,30 +23,64 @@ def payment_gateways(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def create_payment_intent(request):
+def create_checkout_session(request):
     order_id = request.data.get('order_id')
     order = get_object_or_404(Order, id=order_id)
 
     if order.status != 'pending':
         return Response({'detail': 'Order is not pending.'}, status=status.HTTP_400_BAD_REQUEST)
 
+    success_url = request.build_absolute_uri(
+        f'/thanks?order={order.id}&session_id={{CHECKOUT_SESSION_ID}}'
+    )
+    cancel_url = request.build_absolute_uri(
+        f'/checkout?order={order.id}&canceled=1'
+    )
+
+    line_items = [
+        {
+            'price_data': {
+                'currency': order.currency.lower(),
+                'unit_amount': int(line.price * line.quantity * 100),
+                'product_data': {
+                    'name': line.title,
+                },
+            },
+            'quantity': line.quantity,
+        }
+        for line in order.lines.all()
+    ]
+
+    if not line_items:
+        line_items = [
+            {
+                'price_data': {
+                    'currency': order.currency.lower(),
+                    'unit_amount': int(order.total * 100),
+                    'product_data': {
+                        'name': 'Order total',
+                    },
+                },
+                'quantity': 1,
+            }
+        ]
+
     try:
-        intent = stripe.PaymentIntent.create(
-            amount=int(order.total * 100),
-            currency=order.currency.lower(),
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=line_items,
+            mode='payment',
+            success_url=success_url,
+            cancel_url=cancel_url,
             metadata={'order_id': str(order.id)},
-            automatic_payment_methods={'enabled': True},
         )
     except stripe.error.StripeError as e:
         return Response({'detail': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
 
-    order.payment_intent_id = intent.id
+    order.payment_intent_id = session.id
     order.save(update_fields=['payment_intent_id'])
 
-    return Response({
-        'client_secret': intent.client_secret,
-        'publishable_key': settings.STRIPE_PUBLISHABLE_KEY,
-    })
+    return Response({'url': session.url})
 
 
 @api_view(['POST'])
@@ -64,9 +98,13 @@ def stripe_webhook(request):
     except stripe.error.SignatureVerificationError:
         return Response({'detail': 'Invalid signature.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if event['type'] == 'payment_intent.succeeded':
-        intent = event['data']['object']
-        order_id = intent['metadata'].get('order_id')
+    order_id = None
+    if event['type'] == 'checkout.session.completed':
+        order_id = event['data']['object'].get('metadata', {}).get('order_id')
+    elif event['type'] == 'payment_intent.succeeded':
+        order_id = event['data']['object'].get('metadata', {}).get('order_id')
+
+    if order_id:
         try:
             order = Order.objects.get(id=order_id)
         except Order.DoesNotExist:
