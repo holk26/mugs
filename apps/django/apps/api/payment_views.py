@@ -30,12 +30,11 @@ def create_checkout_session(request):
     if order.status != 'pending':
         return Response({'detail': 'Order is not pending.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    success_url = request.build_absolute_uri(
-        f'/thanks?order={order.id}&session_id={{CHECKOUT_SESSION_ID}}'
+    base_url = settings.SITE_URL.rstrip('/')
+    success_url = (
+        f'{base_url}/thanks?order={order.id}&session_id={{CHECKOUT_SESSION_ID}}'
     )
-    cancel_url = request.build_absolute_uri(
-        f'/checkout?order={order.id}&canceled=1'
-    )
+    cancel_url = f'{base_url}/checkout?order={order.id}&canceled=1'
 
     line_items = [
         {
