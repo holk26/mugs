@@ -13,12 +13,15 @@ export default function ProductDetail({ product }: Props) {
   const [preview, setPreview] = useState<string>('');
   const [fileName, setFileName] = useState<string>('');
   const [added, setAdded] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const addItem = useCart((s) => s.addItem);
 
   const selectedVariant = useMemo(
     () => product.variants.find((v) => v.id === variantId) || product.variants[0],
     [variantId, product.variants]
   );
+
+  const images = product.medias?.length ? product.medias : [];
 
   useEffect(() => {
     return () => {
@@ -65,16 +68,40 @@ export default function ProductDetail({ product }: Props) {
   return (
     <div className="section py-12 md:py-20">
       <div className="grid gap-10 md:grid-cols-2 lg:gap-16">
-        <div className="overflow-hidden rounded-3xl bg-stone-100">
-          {product.medias[0] ? (
-            <img
-              src={product.medias[0].url}
-              alt={product.medias[0].alt || product.title}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex aspect-square items-center justify-center text-stone-400">
-              No image
+        <div className="space-y-4">
+          <div className="overflow-hidden rounded-3xl bg-stone-100">
+            {images[selectedImageIndex] ? (
+              <img
+                src={images[selectedImageIndex].url}
+                alt={images[selectedImageIndex].alt || product.title}
+                className="aspect-square h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex aspect-square items-center justify-center text-stone-400">
+                No image
+              </div>
+            )}
+          </div>
+
+          {images.length > 1 && (
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {images.map((media, index) => (
+                <button
+                  key={media.id}
+                  onClick={() => setSelectedImageIndex(index)}
+                  className={`relative flex-shrink-0 overflow-hidden rounded-xl border-2 transition ${
+                    index === selectedImageIndex
+                      ? 'border-orange-700'
+                      : 'border-transparent hover:border-stone-300'
+                  }`}
+                >
+                  <img
+                    src={media.url}
+                    alt={media.alt || product.title}
+                    className="h-20 w-20 object-cover"
+                  />
+                </button>
+              ))}
             </div>
           )}
         </div>
