@@ -1,13 +1,40 @@
 import apiClient from './client';
 import type { PaginatedResponse } from './products';
 
+export interface OrderLine {
+  product_name: string;
+  variant_name: string;
+  quantity: number;
+  unit_price: string;
+  total_price: string;
+}
+
+export interface UploadFile {
+  file: string;
+  name?: string;
+}
+
+export interface ShippingAddress {
+  name: string;
+  address1: string;
+  address2?: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+}
+
 export interface Order {
   id: string;
   status: string;
   customer_email: string;
   customer_name: string;
-  total: number;
+  total: number | string;
   created_at: string;
+  shipping_address?: ShippingAddress | null;
+  raw_upload?: UploadFile | null;
+  processed_upload?: UploadFile | null;
+  lines?: OrderLine[];
 }
 
 export async function listOrders(params?: Record<string, unknown>): Promise<PaginatedResponse<Order>> {
@@ -15,8 +42,8 @@ export async function listOrders(params?: Record<string, unknown>): Promise<Pagi
   return response.data;
 }
 
-export async function getOrder(id: string) {
-  const response = await apiClient.get(`/api/v1/admin/orders/${id}/`);
+export async function getOrder(id: string): Promise<Order> {
+  const response = await apiClient.get<Order>(`/api/v1/admin/orders/${id}/`);
   return response.data;
 }
 
