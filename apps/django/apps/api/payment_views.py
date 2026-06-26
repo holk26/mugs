@@ -1,5 +1,4 @@
 import stripe
-import traceback
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -86,17 +85,6 @@ def create_checkout_session(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def stripe_webhook(request):
-    try:
-        return _stripe_webhook_inner(request)
-    except Exception as exc:
-        # Temporary debug response to capture the real failure in production.
-        return Response(
-            {'detail': str(exc), 'traceback': traceback.format_exc()},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-
-
-def _stripe_webhook_inner(request):
     payload = request.body
     sig_header = request.headers.get('Stripe-Signature')
 
