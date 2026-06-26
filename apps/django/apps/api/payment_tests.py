@@ -58,7 +58,9 @@ class TestStripeWebhook:
         )
 
     def _event(self, event_id='evt_test_1', payment_intent='pi_test'):
-        return {
+        # `stripe.Webhook.construct_event` returns a StripeObject, not a dict.
+        # Use the same shape here so tests exercise attribute access.
+        data = {
             'id': event_id,
             'object': 'event',
             'type': 'checkout.session.completed',
@@ -71,6 +73,7 @@ class TestStripeWebhook:
                 },
             },
         }
+        return stripe.convert_to_stripe_object(data, stripe.api_key)
 
     @patch('apps.api.payment_views.stripe.Webhook.construct_event')
     def test_webhook_marks_order_paid(self, mock_construct):

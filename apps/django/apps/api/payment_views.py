@@ -102,23 +102,26 @@ def stripe_webhook(request):
 
     # Idempotency: each Stripe event has a unique ID. Processing the same event
     # twice must not change the order state or trigger side effects again.
-    event_id = event.get('id')
-    event_type = event.get('type')
-    event_obj = event.get('data', {}).get('object', {})
+    # `construct_event` returns a StripeObject, which supports attribute access
+    # but does not have a `.get()` method like a dict.
+    event_id = event.id
+    event_type = event.type
+    event_obj = event.data.object
 
     _, created = WebhookEvent.objects.get_or_create(
         event_id=event_id,
         defaults={
             'event_type': event_type,
-            'payload': event_obj,
+            'payload': event_obj.to_dict(),
         },
     )
     if not created:
         return Response({'status': 'already_processed'})
 
     if event_type == 'checkout.session.completed':
-        order_id = event_obj.get('metadata', {}).get('order_id')
-        payment_intent_id = event_obj.get('payment_intent')
+        # StripeObject supports attribute access but not dict methods.
+        order_id = getattr(event_obj.metadata, 'order_id', None)
+        payment_intent_id = getattr(event_obj, 'payment_intent', None)
 
         if order_id:
             try:
