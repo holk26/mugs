@@ -111,7 +111,9 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
     lookup_field = 'id'
 
     def get_queryset(self):
-        return super().get_queryset().prefetch_related('lines')
+        return super().get_queryset().prefetch_related(
+            'lines', 'lines__variant', 'lines__variant__product'
+        )
 
     @action(detail=True, methods=['patch'], url_path='status')
     def update_status(self, request, id=None):
