@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+mkdir -p "${MEDIA_ROOT:-/app/media}"
+
 python manage.py collectstatic --noinput
 python manage.py migrate --noinput
 

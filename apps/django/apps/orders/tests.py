@@ -1,6 +1,9 @@
+import os
+import shutil
 import pytest
 from io import BytesIO
 from django.urls import reverse
+from django.conf import settings
 from rest_framework.test import APIClient
 from apps.orders.models import Order, OrderLine
 from apps.products.models import Product, ProductVariant
@@ -51,6 +54,11 @@ class TestDrawingUpload:
             price='15.00',
         )
 
+    def teardown_method(self):
+        media_root = settings.MEDIA_ROOT
+        if os.path.isdir(media_root):
+            shutil.rmtree(media_root)
+
     def test_upload_drawing(self):
         url = reverse('order-upload-drawing', kwargs={'pk': self.order.id, 'line_id': self.line.id})
         image = BytesIO(b'fake-image-data')
@@ -64,3 +72,23 @@ class TestDrawingUpload:
         assert response.status_code == 200
         self.line.refresh_from_db()
         assert self.line.customer_upload
+
+    def test_upload_drawing_creates_media_root(self):
+        media_root = settings.MEDIA_ROOT
+        if os.path.isdir(media_root):
+            shutil.rmtree(media_root)
+        assert not os.path.exists(media_root)
+
+        url = reverse('order-upload-drawing', kwargs={'pk': self.order.id, 'line_id': self.line.id})
+        image = BytesIO(b'fake-image-data')
+        image.content_type = 'image/png'
+        response = self.client.post(
+            url,
+            {'file': image},
+            format='multipart',
+            HTTP_CONTENT_DISPOSITION='attachment; filename="drawing.png"',
+        )
+        assert response.status_code == 200
+        self.line.refresh_from_db()
+        assert self.line.customer_upload
+        assert os.path.exists(self.line.customer_upload.path)
