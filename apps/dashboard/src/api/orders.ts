@@ -16,12 +16,13 @@ export interface UploadFile {
 
 export interface ShippingAddress {
   name: string;
-  address1: string;
-  address2?: string;
+  line1: string;
+  line2?: string;
   city: string;
   state: string;
   postal_code: string;
   country: string;
+  phone?: string;
 }
 
 export interface Order {
@@ -33,7 +34,6 @@ export interface Order {
   created_at: string;
   shipping_address?: ShippingAddress | null;
   raw_upload?: UploadFile | null;
-  processed_upload?: UploadFile | null;
   lines?: OrderLine[];
   printful_order_id?: string;
   printful_status?: string;

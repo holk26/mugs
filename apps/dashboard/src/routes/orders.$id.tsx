@@ -61,7 +61,7 @@ function OrderDetailPage() {
   if (isLoading) return <p>Cargando...</p>;
   if (!data) return <p>No se encontró la orden.</p>;
 
-  const upload = data.processed_upload || data.raw_upload;
+  const upload = data.raw_upload;
 
   return (
     <div className="space-y-6">
@@ -118,9 +118,9 @@ function OrderDetailPage() {
             <a
               href={resolveFileUrl(upload.file)}
               download={upload.name || true}
-              className="btn-primary"
+              className="inline-flex items-center justify-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
             >
-              {data.processed_upload ? 'Descargar diseño procesado' : 'Descargar archivo subido'}
+              Descargar archivo subido
             </a>
           </div>
         </Card>
@@ -131,8 +131,8 @@ function OrderDetailPage() {
         {data.shipping_address ? (
           <address className="grid gap-1 text-sm not-italic">
             <p className="font-medium">{data.shipping_address.name}</p>
-            <p>{data.shipping_address.address1}</p>
-            {data.shipping_address.address2 && <p>{data.shipping_address.address2}</p>}
+            <p>{data.shipping_address.line1 || data.shipping_address.address1}</p>
+            {data.shipping_address.line2 && <p>{data.shipping_address.line2}</p>}
             <p>
               {[
                 data.shipping_address.city,

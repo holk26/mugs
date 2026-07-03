@@ -112,7 +112,6 @@ def push_order(order, confirm=False):
     Pass ``confirm=True`` only when a human has reviewed and approved the order.
     """
     from django.db import transaction
-    from django.conf import settings
     from apps.products.models import ProductVariant
     from .transformers import storecraft_address_to_printful_recipient
 
@@ -128,11 +127,10 @@ def push_order(order, confirm=False):
                 'retail_price': str(line.price),
                 'files': [],
             }
-            upload_file = line.processed_upload or line.customer_upload
-            if upload_file:
-                absolute_url = upload_file.url
+            if line.customer_upload:
+                absolute_url = line.customer_upload.url
                 if absolute_url.startswith('/'):
-                    absolute_url = f"{settings.SITE_URL.rstrip('/')}{absolute_url}"
+                    absolute_url = f"https://mugs.app.moonsbow.com{absolute_url}"
                 item['files'].append({
                     'url': absolute_url,
                     'type': 'default',

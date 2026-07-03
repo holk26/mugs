@@ -67,3 +67,6 @@ class PrintfulClient:
 
     def get_order(self, order_id):
         return self._request(f'/orders/{order_id}')
+
+    def confirm_order(self, order_id):
+        return self._request(f'/orders/{order_id}/confirm', method='POST')

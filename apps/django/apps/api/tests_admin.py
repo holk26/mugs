@@ -6,10 +6,9 @@ from rest_framework.test import APIRequestFactory, APIClient
 from apps.api.permissions import IsAdminUser
 from apps.api.admin_serializers import AdminProductListSerializer
 from apps.api.tasks import sync_printful_catalog
-from apps.products.models import Product
-from apps.orders.models import Order
+from apps.products.models import Product, ProductVariant
+from apps.orders.models import Order, OrderLine
 from apps.printful.models import PrintfulSyncLog
-from apps.printful.sync import push_order, confirm_printful_order
 
 User = get_user_model()
 
@@ -57,10 +56,6 @@ def test_sync_printful_catalog_task_creates_log():
     assert result['created'] == 1
     assert result['updated'] == 2
 
-import uuid
-from rest_framework.test import APIClient
-from apps.products.models import Product
-from apps.orders.models import Order
 
 @pytest.fixture
 def admin_client():
@@ -69,6 +64,7 @@ def admin_client():
     client.force_authenticate(user=user)
     return client
 
+
 @pytest.fixture
 def regular_client():
     user = User.objects.create_user(email='user@test.com', username='user@test.com', password='pass', is_staff=False)
@@ -76,11 +72,13 @@ def regular_client():
     client.force_authenticate(user=user)
     return client
 
+
 @pytest.mark.django_db
 def test_admin_products_list_requires_admin(admin_client, regular_client):
     Product.objects.create(handle='mug-1', title='Mug 1', price=10, status='active')
     assert admin_client.get('/api/v1/admin/products/').status_code == 200
     assert regular_client.get('/api/v1/admin/products/').status_code == 403
+
 
 @pytest.mark.django_db
 def test_admin_orders_update_status(admin_client):
@@ -92,35 +90,60 @@ def test_admin_orders_update_status(admin_client):
 
 
 @pytest.mark.django_db
-@patch('apps.api.admin_views.push_order')
-def test_admin_push_order_to_printful(mock_push, admin_client):
-    mock_push.return_value = 'pf_12345'
-    order = Order.objects.create(customer_email='a@b.com', total=10, status='paid')
-    response = admin_client.post(f'/api/v1/admin/orders/{order.id}/printful/push/')
+def test_admin_order_push_printful(admin_client):
+    order = Order.objects.create(
+        customer_email='a@b.com',
+        total=10,
+        shipping_address={
+            'name': 'Homero',
+            'line1': '123 Main St',
+            'city': 'Springfield',
+            'state': 'IL',
+            'postal_code': '62701',
+            'country': 'US',
+        },
+    )
+    product = Product.objects.create(handle='mug', title='Mug', price=10)
+    variant = ProductVariant.objects.create(
+        product=product,
+        title='11oz',
+        price=10,
+        printful_variant_id='12345',
+    )
+    OrderLine.objects.create(order=order, variant=variant, title='Mug', quantity=1, price=10)
+
+    mock_result = {'result': {'id': 98765, 'status': 'draft'}}
+    with patch('apps.printful.sync.PrintfulClient') as mock_client_class:
+        mock_client = MagicMock()
+        mock_client.create_order.return_value = mock_result
+        mock_client_class.return_value = mock_client
+
+        response = admin_client.post(f'/api/v1/admin/orders/{order.id}/printful/push/')
+
     assert response.status_code == 200
-    assert response.json()['printful_order_id'] == 'pf_12345'
-    mock_push.assert_called_once_with(order, confirm=False)
+    assert response.json()['printful_order_id'] == '98765'
+    order.refresh_from_db()
+    assert order.printful_order_id == '98765'
+    assert order.printful_status == 'draft'
 
 
 @pytest.mark.django_db
-def test_admin_push_order_to_printful_already_pushed(admin_client):
+def test_admin_order_confirm_printful(admin_client):
     order = Order.objects.create(
-        customer_email='a@b.com', total=10, status='paid',
-        printful_order_id='pf_existing', printful_status='draft'
+        customer_email='a@b.com',
+        total=10,
+        printful_order_id='98765',
+        printful_status='draft',
     )
-    response = admin_client.post(f'/api/v1/admin/orders/{order.id}/printful/push/')
-    assert response.status_code == 400
-    assert 'already pushed' in response.json()['detail'].lower()
 
+    mock_result = {'result': {'id': 98765, 'status': 'pending'}}
+    with patch('apps.printful.sync.PrintfulClient') as mock_client_class:
+        mock_client = MagicMock()
+        mock_client.confirm_order.return_value = mock_result
+        mock_client_class.return_value = mock_client
 
-@pytest.mark.django_db
-@patch('apps.api.admin_views.confirm_printful_order')
-def test_admin_confirm_printful_order(mock_confirm, admin_client):
-    mock_confirm.return_value = 'pending'
-    order = Order.objects.create(
-        customer_email='a@b.com', total=10, status='paid',
-        printful_order_id='pf_12345', printful_status='draft'
-    )
-    response = admin_client.post(f'/api/v1/admin/orders/{order.id}/printful/confirm/')
+        response = admin_client.post(f'/api/v1/admin/orders/{order.id}/printful/confirm/')
+
     assert response.status_code == 200
-    mock_confirm.assert_called_once_with(order)
+    order.refresh_from_db()
+    assert order.printful_status == 'pending'

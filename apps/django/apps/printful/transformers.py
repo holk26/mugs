@@ -52,19 +52,32 @@ def storecraft_address_to_printful_recipient(address, contact=None):
     contact = contact or {}
     from_contact = ' '.join(filter(None, [contact.get('firstname'), contact.get('lastname')]))
     from_address = ' '.join(filter(None, [address.get('firstname'), address.get('lastname')]))
-    name = from_contact or from_address or 'Customer'
+    name = from_contact or from_address or address.get('name', 'Customer')
+
+    address1 = address.get('line1') or address.get('address1') or address.get('street1', '')
+    address2 = address.get('line2') or address.get('address2') or address.get('street2', '')
+    city = address.get('city', '')
+    state = address.get('state') or address.get('state_code', '')
+    country = address.get('country') or address.get('country_code', '')
+    zip_code = (
+        address.get('postal_code')
+        or address.get('zip_code')
+        or address.get('zip', '')
+    )
+    phone = contact.get('phone_number') or address.get('phone_number') or address.get('phone', '')
+    email = contact.get('email') or address.get('email', '')
 
     return {
         'name': name,
         'company': address.get('company', ''),
-        'address1': address.get('street1', ''),
-        'address2': address.get('street2', ''),
-        'city': address.get('city', ''),
-        'state_code': address.get('state', ''),
-        'country_code': address.get('country', ''),
-        'zip': address.get('zip_code') or address.get('postal_code', ''),
-        'phone': contact.get('phone_number') or address.get('phone_number', ''),
-        'email': contact.get('email', ''),
+        'address1': address1,
+        'address2': address2,
+        'city': city,
+        'state_code': state,
+        'country_code': country,
+        'zip': zip_code,
+        'phone': phone,
+        'email': email,
     }
 
 

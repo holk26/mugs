@@ -13,6 +13,7 @@ from .admin_views import (
     AdminProductMediaViewSet,
     AdminCollectionViewSet,
     AdminOrderViewSet,
+    AdminStatsViewSet,
     AdminPrintfulViewSet,
 )
 
@@ -53,10 +54,12 @@ urlpatterns += [
             path('', AdminProductMediaViewSet.as_view({'get': 'list', 'post': 'create'})),
             path('<uuid:id>/', AdminProductMediaViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
         ])),
-        path('printful/', include([
+                path('printful/', include([
             path('sync/', AdminPrintfulViewSet.as_view({'post': 'sync'})),
             path('logs/', AdminPrintfulViewSet.as_view({'get': 'logs'})),
             path('webhooks/', AdminPrintfulViewSet.as_view({'get': 'webhooks'})),
         ])),
-    ])),
+        path('stats/dashboard/', AdminStatsViewSet.as_view({'get': 'dashboard'})),
+    ]))
+,
 ]

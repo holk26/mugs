@@ -1,3 +1,7 @@
+from django.utils import timezone
+from django.db.models.functions import TruncDate
+from django.db.models import Count
+from datetime import timedelta
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -112,9 +116,7 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
     lookup_field = 'id'
 
     def get_queryset(self):
-        return super().get_queryset().prefetch_related(
-            'lines', 'lines__variant', 'lines__variant__product'
-        )
+        return super().get_queryset().prefetch_related('lines')
 
     @action(detail=True, methods=['patch'], url_path='status')
     def update_status(self, request, id=None):
@@ -159,13 +161,30 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
         return Response(AdminOrderSerializer(order).data)
 
 
+class AdminStatsViewSet(viewsets.ViewSet):
+    permission_classes = [IsAdminUser]
+
+    @action(detail=False, methods=['get'], url_path='dashboard')
+    def dashboard(self, request):
+        today = timezone.now().date()
+        orders_today = Order.objects.filter(created_at__date=today).count()
+        active_products = Product.objects.filter(status='active').count()
+        last_sync = PrintfulSyncLog.objects.filter(
+            status__in=['completed', 'completed_with_errors']
+        ).order_by('-finished_at').first()
+        return Response({
+            'orders_today': orders_today,
+            'active_products': active_products,
+            'last_sync_at': last_sync.finished_at.isoformat() if last_sync and last_sync.finished_at else None,
+        })
+
+
 class AdminPrintfulViewSet(viewsets.ViewSet):
     permission_classes = [IsAdminUser]
 
     @action(detail=False, methods=['post'], url_path='sync')
     def sync(self, request):
         from apps.printful.sync import CatalogSync
-        from django.utils import timezone
 
         log = PrintfulSyncLog.objects.create(status='running')
         try:
