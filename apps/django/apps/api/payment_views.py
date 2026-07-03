@@ -5,27 +5,10 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from apps.payments.models import PaymentGateway, WebhookEvent
+from apps.payments.models import PaymentGateway
 from apps.orders.models import Order
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
-
-
-def _stripe_address_to_order(address_obj):
-    """Convert a Stripe shipping/billing address object to our order format."""
-    if not address_obj:
-        return None
-    address = getattr(address_obj, 'address', address_obj)
-    name = getattr(address_obj, 'name', '') or ''
-    return {
-        'name': name,
-        'address1': getattr(address, 'line1', '') or '',
-        'address2': getattr(address, 'line2', '') or '',
-        'city': getattr(address, 'city', '') or '',
-        'state': getattr(address, 'state', '') or '',
-        'postal_code': getattr(address, 'postal_code', '') or '',
-        'country': getattr(address, 'country', '') or '',
-    }
 
 
 @api_view(['GET'])
@@ -47,11 +30,12 @@ def create_checkout_session(request):
     if order.status != 'pending':
         return Response({'detail': 'Order is not pending.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    base_url = settings.SITE_URL.rstrip('/')
-    success_url = (
-        f'{base_url}/thanks?order={order.id}&session_id={{CHECKOUT_SESSION_ID}}'
+    success_url = request.build_absolute_uri(
+        f'/thanks?order={order.id}&session_id={{CHECKOUT_SESSION_ID}}'
     )
-    cancel_url = f'{base_url}/checkout?order={order.id}&canceled=1'
+    cancel_url = request.build_absolute_uri(
+        f'/checkout?order={order.id}&canceled=1'
+    )
 
     line_items = [
         {
@@ -90,7 +74,7 @@ def create_checkout_session(request):
             cancel_url=cancel_url,
             metadata={'order_id': str(order.id)},
             shipping_address_collection={
-                'allowed_countries': settings.STRIPE_CHECKOUT_SHIPPING_COUNTRIES,
+                'allowed_countries': ['US', 'CA', 'MX', 'ES', 'AR', 'CL', 'CO', 'PE', 'UY', 'EC', 'BO', 'VE', 'PA', 'CR', 'GT', 'SV', 'HN', 'NI', 'DO', 'PR'],
             },
         )
     except stripe.error.StripeError as e:
@@ -108,9 +92,6 @@ def stripe_webhook(request):
     payload = request.body
     sig_header = request.headers.get('Stripe-Signature')
 
-    if not sig_header:
-        return Response({'detail': 'Missing signature.'}, status=status.HTTP_400_BAD_REQUEST)
-
     try:
         event = stripe.Webhook.construct_event(
             payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
@@ -120,56 +101,36 @@ def stripe_webhook(request):
     except stripe.error.SignatureVerificationError:
         return Response({'detail': 'Invalid signature.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Idempotency: each Stripe event has a unique ID. Processing the same event
-    # twice must not change the order state or trigger side effects again.
-    # `construct_event` returns a StripeObject, which supports attribute access
-    # but does not have a `.get()` method like a dict.
-    event_id = event.id
-    event_type = event.type
-    event_obj = event.data.object
+    order_id = None
+    if event['type'] == 'checkout.session.completed':
+        order_id = event['data']['object'].get('metadata', {}).get('order_id')
+    elif event['type'] == 'payment_intent.succeeded':
+        order_id = event['data']['object'].get('metadata', {}).get('order_id')
 
-    _, created = WebhookEvent.objects.get_or_create(
-        event_id=event_id,
-        defaults={
-            'event_type': event_type,
-            'payload': event_obj.to_dict(),
-        },
-    )
-    if not created:
-        return Response({'status': 'already_processed'})
+    if order_id:
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            return Response({'detail': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    if event_type == 'checkout.session.completed':
-        # StripeObject supports attribute access but not dict methods.
-        order_id = getattr(event_obj.metadata, 'order_id', None)
-        payment_intent_id = getattr(event_obj, 'payment_intent', None)
+        if order.status == 'pending':
+            order.status = 'paid'
+            order.save(update_fields=['status'])
 
-        if order_id:
-            try:
-                order = Order.objects.get(id=order_id)
-            except Order.DoesNotExist:
-                return Response({'detail': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-            if order.status == 'pending':
-                order.status = 'paid'
-                if payment_intent_id:
-                    order.payment_intent_id = payment_intent_id
-
-            # Stripe Checkout collects the shipping address. Sync it back to the
-            # order so Printful fulfillment has the correct recipient data.
-            shipping = _stripe_address_to_order(getattr(event_obj, 'shipping_details', None))
-            if shipping:
-                order.shipping_address = shipping
-
-            customer = getattr(event_obj, 'customer_details', None)
-            if customer:
-                if getattr(customer, 'name', None):
-                    order.customer_name = customer.name
-                if getattr(customer, 'email', None):
-                    order.customer_email = customer.email
-
-            order.save(update_fields=[
-                'status', 'payment_intent_id', 'shipping_address',
-                'customer_name', 'customer_email',
-            ])
+        if event['type'] == 'checkout.session.completed':
+            session_obj = event['data']['object']
+            shipping = session_obj.get('shipping_details') or session_obj.get('customer_details', {}).get('shipping', {})
+            address = shipping.get('address', {})
+            if address:
+                order.shipping_address = {
+                    'name': shipping.get('name', order.customer_name),
+                    'line1': address.get('line1', ''),
+                    'line2': address.get('line2', ''),
+                    'city': address.get('city', ''),
+                    'state': address.get('state', ''),
+                    'postal_code': address.get('postal_code', ''),
+                    'country': address.get('country', ''),
+                }
+                order.save(update_fields=['shipping_address'])
 
     return Response({'status': 'ok'})
