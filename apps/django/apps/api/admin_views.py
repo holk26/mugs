@@ -1,3 +1,7 @@
+from django.utils import timezone
+from django.db.models.functions import TruncDate
+from django.db.models import Count
+from datetime import timedelta
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -21,6 +25,7 @@ from apps.api.admin_serializers import (
 from apps.products.models import Product, ProductVariant, ProductMedia, Collection
 from apps.orders.models import Order
 from apps.printful.models import PrintfulSyncLog, PrintfulWebhookEvent
+from apps.printful.sync import push_order, confirm_printful_order
 from apps.api.tasks import sync_printful_catalog
 
 User = get_user_model()
@@ -121,6 +126,58 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
         serializer.save()
         return Response(AdminOrderSerializer(order).data)
 
+    @action(detail=True, methods=['post'], url_path='printful/push')
+    def push_printful(self, request, id=None):
+        """Push the order to Printful as a draft for human review."""
+        order = self.get_object()
+        if order.printful_order_id:
+            return Response(
+                {'detail': 'Order already pushed to Printful.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            printful_id = push_order(order, confirm=False)
+        except Exception as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response({
+            'detail': 'Order pushed to Printful as draft.',
+            'printful_order_id': printful_id,
+        })
+
+    @action(detail=True, methods=['post'], url_path='printful/confirm')
+    def confirm_printful(self, request, id=None):
+        """Confirm a Printful draft order so it enters fulfillment."""
+        order = self.get_object()
+        if not order.printful_order_id:
+            return Response(
+                {'detail': 'Order has not been pushed to Printful yet.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            confirm_printful_order(order)
+        except Exception as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        order.refresh_from_db()
+        return Response(AdminOrderSerializer(order).data)
+
+
+class AdminStatsViewSet(viewsets.ViewSet):
+    permission_classes = [IsAdminUser]
+
+    @action(detail=False, methods=['get'], url_path='dashboard')
+    def dashboard(self, request):
+        today = timezone.now().date()
+        orders_today = Order.objects.filter(created_at__date=today).count()
+        active_products = Product.objects.filter(status='active').count()
+        last_sync = PrintfulSyncLog.objects.filter(
+            status__in=['completed', 'completed_with_errors']
+        ).order_by('-finished_at').first()
+        return Response({
+            'orders_today': orders_today,
+            'active_products': active_products,
+            'last_sync_at': last_sync.finished_at.isoformat() if last_sync and last_sync.finished_at else None,
+        })
+
 
 class AdminPrintfulViewSet(viewsets.ViewSet):
     permission_classes = [IsAdminUser]
@@ -128,7 +185,6 @@ class AdminPrintfulViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'], url_path='sync')
     def sync(self, request):
         from apps.printful.sync import CatalogSync
-        from django.utils import timezone
 
         log = PrintfulSyncLog.objects.create(status='running')
         try:

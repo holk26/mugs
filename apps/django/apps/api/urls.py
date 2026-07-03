@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import ProductViewSet, CollectionViewSet
 from .auth_views import signup, signin
 from .order_views import OrderViewSet
-from .payment_views import payment_gateways, create_payment_intent, stripe_webhook
+from .payment_views import payment_gateways, create_checkout_session, stripe_webhook
 from rest_framework_simplejwt.views import TokenRefreshView
 from apps.printful.views import printful_webhook
 from .admin_views import (
@@ -13,6 +13,7 @@ from .admin_views import (
     AdminProductMediaViewSet,
     AdminCollectionViewSet,
     AdminOrderViewSet,
+    AdminStatsViewSet,
     AdminPrintfulViewSet,
 )
 
@@ -33,7 +34,7 @@ urlpatterns = [
     path('auth/signin/', signin),
     path('auth/refresh/', TokenRefreshView.as_view()),
     path('payments/gateways/', payment_gateways, name='payment-gateways'),
-    path('payments/stripe/intent/', create_payment_intent, name='create-payment-intent'),
+    path('payments/stripe/checkout/', create_checkout_session, name='create-checkout-session'),
     path('payments/stripe/webhook/', stripe_webhook, name='stripe-webhook'),
     path('', include(router.urls)),
 ]
@@ -53,10 +54,12 @@ urlpatterns += [
             path('', AdminProductMediaViewSet.as_view({'get': 'list', 'post': 'create'})),
             path('<uuid:id>/', AdminProductMediaViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
         ])),
-        path('printful/', include([
+                path('printful/', include([
             path('sync/', AdminPrintfulViewSet.as_view({'post': 'sync'})),
             path('logs/', AdminPrintfulViewSet.as_view({'get': 'logs'})),
             path('webhooks/', AdminPrintfulViewSet.as_view({'get': 'webhooks'})),
         ])),
-    ])),
+        path('stats/dashboard/', AdminStatsViewSet.as_view({'get': 'dashboard'})),
+    ]))
+,
 ]

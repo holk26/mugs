@@ -19,7 +19,7 @@ function OrdersPage() {
   const columns = [
     { key: 'id', header: 'Orden', render: (o: Order) => <span className="font-mono text-xs">{o.id.slice(0, 8)}</span> },
     { key: 'customer', header: 'Cliente', render: (o: Order) => `${o.customer_name || o.customer_email}` },
-    { key: 'total', header: 'Total', render: (o: Order) => formatCurrency(o.total) },
+    { key: 'total', header: 'Total', render: (o: Order) => formatCurrency(Number(o.total)) },
     { key: 'status', header: 'Estado', render: (o: Order) => <OrderStatusBadge status={o.status} /> },
     { key: 'created_at', header: 'Fecha', render: (o: Order) => formatDate(o.created_at) },
     { key: 'actions', header: '', render: (o: Order) => <Link to={`/orders/$id`} params={{ id: o.id }} className="text-primary-700 hover:underline">Ver</Link> },

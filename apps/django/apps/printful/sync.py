@@ -105,8 +105,12 @@ class CatalogSync:
                 break
 
 
-def push_order(order):
-    """Push a paid order to Printful for fulfillment."""
+def push_order(order, confirm=False):
+    """Push a paid order to Printful as a draft by default.
+
+    Draft orders must be explicitly confirmed before Printful fulfills them.
+    Pass ``confirm=True`` only when a human has reviewed and approved the order.
+    """
     from django.db import transaction
     from apps.products.models import ProductVariant
     from .transformers import storecraft_address_to_printful_recipient
@@ -126,7 +130,6 @@ def push_order(order):
             if line.customer_upload:
                 absolute_url = line.customer_upload.url
                 if absolute_url.startswith('/'):
-                    # TODO: replace with the real public domain / CDN
                     absolute_url = f"https://mugs.app.moonsbow.com{absolute_url}"
                 item['files'].append({
                     'url': absolute_url,
@@ -143,7 +146,7 @@ def push_order(order):
             'recipient': recipient,
             'items': items,
             'shipping': 'STANDARD',
-        })
+        }, confirm=confirm)
 
         pf_order = result.get('result', {})
         order.printful_order_id = str(pf_order.get('id', ''))
@@ -152,3 +155,21 @@ def push_order(order):
         return order.printful_order_id
 
     transaction.on_commit(_do_push)
+
+
+def confirm_printful_order(order):
+    """Confirm an existing Printful draft order so it enters fulfillment."""
+    from django.db import transaction
+
+    if not order.printful_order_id:
+        raise ValueError('Order has not been pushed to Printful yet')
+
+    def _do_confirm():
+        client = PrintfulClient()
+        result = client.confirm_order(order.printful_order_id)
+        pf_order = result.get('result', {})
+        order.printful_status = pf_order.get('status', order.printful_status)
+        order.save(update_fields=['printful_status'])
+        return order.printful_status
+
+    transaction.on_commit(_do_confirm)
