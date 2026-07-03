@@ -23,6 +23,8 @@ export interface ShippingAddress {
   postal_code: string;
   country: string;
   phone?: string;
+  address1?: string;
+  address2?: string;
 }
 
 export interface Order {
