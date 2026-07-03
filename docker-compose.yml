@@ -52,7 +52,7 @@ services:
       - db
       - redis
     volumes:
-      - ./media:/app/media
+      - media-data:/app/media
     networks:
       - dokploy-network
     restart: unless-stopped
@@ -152,6 +152,7 @@ services:
 
 volumes:
   postgres-data:
+  media-data:
 
 networks:
   dokploy-network:
