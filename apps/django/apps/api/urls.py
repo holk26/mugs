@@ -39,8 +39,8 @@ urlpatterns = [
     path('payments/gateways/', payment_gateways, name='payment-gateways'),
     path('payments/stripe/checkout/', create_checkout_session, name='create-checkout-session'),
     path('payments/stripe/webhook/', stripe_webhook, name='stripe-webhook'),
-    path('discounts/apply/', apply_discount, name='discount-apply'),
-    path('discounts/remove/', remove_discount, name='discount-remove'),
+    path('discounts/apply', apply_discount, name='discount-apply'),
+    path('discounts/remove', remove_discount, name='discount-remove'),
     path('', include(router.urls)),
 ]
 

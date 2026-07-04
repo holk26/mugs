@@ -1,14 +1,34 @@
 from decimal import Decimal
 
+from django.core.cache import cache
 from django.db import transaction
-from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from apps.discounts.models import DiscountCode, DiscountUsage
+from apps.discounts.models import DiscountCode
 from apps.orders.models import Order
+
+
+MAX_COUPON_ATTEMPTS_PER_MINUTE = 30
+
+
+def _rate_limit_key(identifier: str) -> str:
+    return f'discount:rate:{identifier}'
+
+
+def _check_rate_limit(identifier: str) -> bool:
+    key = _rate_limit_key(identifier)
+    try:
+        attempts = cache.get(key, 0)
+        if attempts >= MAX_COUPON_ATTEMPTS_PER_MINUTE:
+            return False
+        cache.set(key, attempts + 1, timeout=60)
+    except Exception:
+        pass
+    return True
 
 
 def _get_order(order_id):
@@ -22,6 +42,36 @@ def _identifier_from_request(request):
     if request.user.is_authenticated:
         return str(request.user.id)
     return request.data.get('email', '').strip().lower()
+
+
+def _client_identifier(request) -> str:
+    """Return a stable identifier for rate limiting and ownership checks."""
+    if request.user.is_authenticated:
+        return f'user:{request.user.id}'
+    email = request.data.get('email', '').strip().lower()
+    if email:
+        return f'email:{email}'
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR', '')
+    return f'ip:{ip}'
+
+
+def _can_manage_order(order: Order, request) -> bool:
+    """Only allow modifying pending orders owned by the same identifier."""
+    if order.status != 'pending':
+        return False
+
+    if order.user_id and request.user.is_authenticated:
+        return order.user_id == request.user.id
+
+    identifier = _identifier_from_request(request)
+    if identifier and order.customer_email and identifier == order.customer_email.lower():
+        return True
+
+    return False
 
 
 def _recalculate_order_total(order):
@@ -41,12 +91,16 @@ def apply_discount(request):
     if not code or not order_id:
         return Response({'detail': 'Code and order_id are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
+    client_id = _client_identifier(request)
+    if not _check_rate_limit(client_id):
+        return Response({'detail': 'Too many attempts. Please try again later.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
     order = _get_order(order_id)
     if not order:
         return Response({'detail': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    if order.status != 'pending':
-        return Response({'detail': 'Discount can only be applied to pending orders.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not _can_manage_order(order, request):
+        return Response({'detail': 'Order not found or cannot be modified.'}, status=status.HTTP_404_NOT_FOUND)
 
     try:
         discount = DiscountCode.objects.get(code=code, is_active=True)
@@ -54,6 +108,15 @@ def apply_discount(request):
         return Response({'detail': 'Invalid discount code.'}, status=status.HTTP_404_NOT_FOUND)
 
     order_total = sum(line.price * line.quantity for line in order.lines.all())
+
+    if order.discount_code_id == discount.id and order.discount_amount > 0:
+        return Response({
+            'discount_code': discount.code,
+            'discount_type': discount.discount_type,
+            'value': str(discount.value),
+            'discount_amount': str(order.discount_amount),
+            'order_total': str(order.total),
+        })
 
     is_valid, message = discount.is_valid(
         order_total=order_total,
@@ -86,12 +149,16 @@ def remove_discount(request):
     if not order_id:
         return Response({'detail': 'order_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
+    client_id = _client_identifier(request)
+    if not _check_rate_limit(client_id):
+        return Response({'detail': 'Too many attempts. Please try again later.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
     order = _get_order(order_id)
     if not order:
         return Response({'detail': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    if order.status != 'pending':
-        return Response({'detail': 'Discount can only be removed from pending orders.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not _can_manage_order(order, request):
+        return Response({'detail': 'Order not found or cannot be modified.'}, status=status.HTTP_404_NOT_FOUND)
 
     order.discount_code = None
     order.discount_amount = Decimal('0')

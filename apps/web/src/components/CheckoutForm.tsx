@@ -4,10 +4,17 @@ import {
   createOrder,
   createCheckoutSession,
   uploadDrawing,
+  applyDiscount,
+  removeDiscount,
   dataUrlToFile,
   type OrderLine,
+  type DiscountResult,
 } from '../lib/api';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Tag, X } from 'lucide-react';
+
+function formatMoney(amount: number | string): string {
+  return `$${Number(amount).toFixed(2)}`;
+}
 
 export default function CheckoutForm() {
   const { items, total } = useCart();
@@ -18,6 +25,10 @@ export default function CheckoutForm() {
   const [checkoutUrl, setCheckoutUrl] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [couponCode, setCouponCode] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [discount, setDiscount] = useState<DiscountResult | null>(null);
 
   const handleCreateOrder = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -47,11 +58,47 @@ export default function CheckoutForm() {
     }
   };
 
+  const handleApplyCoupon = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!couponCode.trim() || !orderId) return;
+
+    setCouponLoading(true);
+    setError('');
+    try {
+      const result = await applyDiscount(orderId, couponCode.trim());
+      setDiscount(result);
+      setCouponCode('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid coupon');
+      setDiscount(null);
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = async () => {
+    if (!orderId) return;
+    setCouponLoading(true);
+    setError('');
+    try {
+      await removeDiscount(orderId);
+      setDiscount(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not remove coupon');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
   const handlePay = () => {
     if (checkoutUrl) {
       window.location.href = checkoutUrl;
     }
   };
+
+  const subtotal = total();
+  const discountAmount = discount ? Number(discount.discount_amount) : 0;
+  const finalTotal = discount ? Number(discount.order_total) : subtotal;
 
   if (items.length === 0 && step === 'form') {
     return (
@@ -142,9 +189,63 @@ export default function CheckoutForm() {
               <p className="mt-2 text-sm text-stone-600">
                 Order <span className="font-medium text-stone-900">{orderId}</span>
               </p>
-              <p className="mt-4 text-sm text-stone-600">
-                You will be redirected to Stripe to complete the payment securely.
-              </p>
+
+              <div className="mt-4 space-y-2 text-sm">
+                <div className="flex justify-between text-stone-600">
+                  <span>Subtotal</span>
+                  <span>{formatMoney(subtotal)}</span>
+                </div>
+                {discount && (
+                  <div className="flex justify-between text-green-700">
+                    <span className="flex items-center gap-1">
+                      <Tag className="h-3.5 w-3.5" />
+                      Discount ({discount.discount_code})
+                    </span>
+                    <span>-{formatMoney(discountAmount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-t border-stone-100 pt-2 text-base font-semibold text-stone-900">
+                  <span>Total</span>
+                  <span>{formatMoney(finalTotal)}</span>
+                </div>
+              </div>
+
+              {!discount ? (
+                <form onSubmit={handleApplyCoupon} className="mt-6">
+                  <label className="block text-sm font-medium text-stone-700">Discount code</label>
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      placeholder="Enter code"
+                      className="flex-1 rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm uppercase outline-none transition focus:border-orange-700 focus:bg-white focus:ring-1 focus:ring-orange-700"
+                    />
+                    <button
+                      type="submit"
+                      disabled={couponLoading || !couponCode.trim()}
+                      className="btn-secondary disabled:opacity-60"
+                    >
+                      {couponLoading ? '...' : 'Apply'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="mt-6 flex items-center justify-between rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800">
+                  <span className="flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    Coupon <strong>{discount.discount_code}</strong> applied
+                  </span>
+                  <button
+                    onClick={handleRemoveCoupon}
+                    disabled={couponLoading}
+                    className="inline-flex items-center gap-1 text-red-600 hover:text-red-700 disabled:opacity-60"
+                  >
+                    <X className="h-4 w-4" />
+                    Remove
+                  </button>
+                </div>
+              )}
 
               {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
 
@@ -154,7 +255,7 @@ export default function CheckoutForm() {
                 className="btn-primary mt-6 flex w-full items-center justify-center gap-2 disabled:opacity-60"
               >
                 <ExternalLink className="h-4 w-4" />
-                Pay with Stripe
+                Pay {formatMoney(finalTotal)} with Stripe
               </button>
             </div>
           </div>
