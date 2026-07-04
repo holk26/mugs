@@ -111,65 +111,64 @@ def push_order(order, confirm=False):
     Draft orders must be explicitly confirmed before Printful fulfills them.
     Pass ``confirm=True`` only when a human has reviewed and approved the order.
     """
-    from django.db import transaction
     from apps.products.models import ProductVariant
     from .transformers import storecraft_address_to_printful_recipient
 
-    def _do_push():
-        client = PrintfulClient()
-        items = []
-        for line in order.lines.select_related('variant'):
-            if not line.variant or not line.variant.printful_variant_id:
-                continue
-            item = {
-                'variant_id': int(line.variant.printful_variant_id),
-                'quantity': line.quantity,
-                'retail_price': str(line.price),
-                'files': [],
-            }
-            if line.customer_upload:
-                absolute_url = line.customer_upload.url
-                if absolute_url.startswith('/'):
-                    absolute_url = f"https://mugs.app.moonsbow.com{absolute_url}"
-                item['files'].append({
-                    'url': absolute_url,
-                    'type': 'default',
-                })
-            items.append(item)
+    client = PrintfulClient()
+    items = []
+    for line in order.lines.select_related('variant'):
+        if not line.variant or not line.variant.printful_variant_id:
+            continue
+        item = {
+            'variant_id': int(line.variant.printful_variant_id),
+            'quantity': line.quantity,
+            'retail_price': str(line.price),
+            'files': [],
+        }
+        if line.processed_upload:
+            absolute_url = line.processed_upload.url
+            if absolute_url.startswith('/'):
+                absolute_url = f"https://mugs.app.moonsbow.com{absolute_url}"
+            item['files'].append({
+                'url': absolute_url,
+                'type': 'default',
+            })
+        elif line.customer_upload:
+            absolute_url = line.customer_upload.url
+            if absolute_url.startswith('/'):
+                absolute_url = f"https://mugs.app.moonsbow.com{absolute_url}"
+            item['files'].append({
+                'url': absolute_url,
+                'type': 'default',
+            })
+        items.append(item)
 
-        if not items:
-            return None
+    if not items:
+        return None
 
-        recipient = storecraft_address_to_printful_recipient(order.shipping_address)
-        result = client.create_order({
-            'external_id': str(order.id),
-            'recipient': recipient,
-            'items': items,
-            'shipping': 'STANDARD',
-        }, confirm=confirm)
+    recipient = storecraft_address_to_printful_recipient(order.shipping_address)
+    result = client.create_order({
+        'external_id': str(order.id),
+        'recipient': recipient,
+        'items': items,
+        'shipping': 'STANDARD',
+    }, confirm=confirm)
 
-        pf_order = result.get('result', {})
-        order.printful_order_id = str(pf_order.get('id', ''))
-        order.printful_status = pf_order.get('status', '')
-        order.save(update_fields=['printful_order_id', 'printful_status'])
-        return order.printful_order_id
-
-    transaction.on_commit(_do_push)
+    pf_order = result.get('result', {})
+    order.printful_order_id = str(pf_order.get('id', ''))
+    order.printful_status = pf_order.get('status', '')
+    order.save(update_fields=['printful_order_id', 'printful_status'])
+    return order.printful_order_id
 
 
 def confirm_printful_order(order):
     """Confirm an existing Printful draft order so it enters fulfillment."""
-    from django.db import transaction
-
     if not order.printful_order_id:
         raise ValueError('Order has not been pushed to Printful yet')
 
-    def _do_confirm():
-        client = PrintfulClient()
-        result = client.confirm_order(order.printful_order_id)
-        pf_order = result.get('result', {})
-        order.printful_status = pf_order.get('status', order.printful_status)
-        order.save(update_fields=['printful_status'])
-        return order.printful_status
-
-    transaction.on_commit(_do_confirm)
+    client = PrintfulClient()
+    result = client.confirm_order(order.printful_order_id)
+    pf_order = result.get('result', {})
+    order.printful_status = pf_order.get('status', order.printful_status)
+    order.save(update_fields=['printful_status'])
+    return order.printful_status

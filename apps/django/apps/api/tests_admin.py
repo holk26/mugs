@@ -1,6 +1,9 @@
+import base64
+
+from unittest.mock import patch, MagicMock
+
 import pytest
 import uuid
-from unittest.mock import patch, MagicMock
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIRequestFactory, APIClient
 from apps.api.permissions import IsAdminUser
@@ -147,3 +150,70 @@ def test_admin_order_confirm_printful(admin_client):
     assert response.status_code == 200
     order.refresh_from_db()
     assert order.printful_status == 'pending'
+
+
+@pytest.mark.django_db
+def test_admin_order_push_printful_uses_processed_upload(admin_client):
+    order = Order.objects.create(
+        customer_email='a@b.com',
+        total=10,
+        shipping_address={
+            'name': 'Homero',
+            'line1': '123 Main St',
+            'city': 'Springfield',
+            'state': 'IL',
+            'postal_code': '62701',
+            'country': 'US',
+        },
+    )
+    product = Product.objects.create(handle='mug', title='Mug', price=10)
+    variant = ProductVariant.objects.create(
+        product=product,
+        title='11oz',
+        price=10,
+        printful_variant_id='12345',
+    )
+    line = OrderLine.objects.create(order=order, variant=variant, title='Mug', quantity=1, price=10)
+    line.customer_upload = 'drawings/2026/07/03/test.png'
+    line.processed_upload = 'processed/2026/07/03/test_cleaned.png'
+    line.save()
+
+    mock_result = {'result': {'id': 98765, 'status': 'draft'}}
+    with patch('apps.printful.sync.PrintfulClient') as mock_client_class:
+        mock_client = MagicMock()
+        mock_client.create_order.return_value = mock_result
+        mock_client_class.return_value = mock_client
+
+        response = admin_client.post(f'/api/v1/admin/orders/{order.id}/printful/push/')
+
+    assert response.status_code == 200
+    call_args = mock_client.create_order.call_args
+    call_kwargs = call_args.kwargs
+    body = call_kwargs.get('body') or call_args[0][0]
+    files = body['items'][0]['files']
+    assert any('processed' in f['url'] for f in files)
+
+
+@pytest.mark.django_db
+def test_admin_order_process_image(admin_client):
+    order = Order.objects.create(
+        customer_email='a@b.com',
+        total=10,
+    )
+    product = Product.objects.create(handle='mug', title='Mug', price=10)
+    variant = ProductVariant.objects.create(
+        product=product,
+        title='11oz',
+        price=10,
+        printful_variant_id='12345',
+    )
+    line = OrderLine.objects.create(order=order, variant=variant, title='Mug', quantity=1, price=10)
+    line.customer_upload = 'drawings/2026/07/03/test.png'
+    line.save()
+
+    with patch('apps.orders.ai_cleanup.generate_cleaned_upload') as mock_cleanup:
+        mock_cleanup.return_value = True
+        response = admin_client.post(f'/api/v1/admin/orders/{order.id}/lines/{line.id}/process-image/')
+
+    assert response.status_code == 200
+    mock_cleanup.assert_called_once_with(line)
