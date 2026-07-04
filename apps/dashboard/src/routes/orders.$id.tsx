@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -30,6 +31,7 @@ function resolveFileUrl(file: string): string {
 function OrderDetailPage() {
   const { id } = Route.useParams();
   const queryClient = useQueryClient();
+  const [provider, setProvider] = useState<'openai' | 'gemini'>('openai');
   const { data, isLoading } = useQuery({
     queryKey: ['order', id],
     queryFn: () => getOrder(id),
@@ -63,7 +65,7 @@ function OrderDetailPage() {
     mutationFn: () => {
       const line = data?.lines?.[0];
       if (!line?.id) throw new Error('No line available for image processing');
-      return processLineImage(id, line.id);
+      return processLineImage(id, line.id, provider);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['order', id] });
@@ -93,6 +95,12 @@ function OrderDetailPage() {
             <dt className="text-stone-500">Email</dt>
             <dd className="font-medium">{data.customer_email}</dd>
           </div>
+          {data.discount_code && (
+            <div>
+              <dt className="text-stone-500">Descuento</dt>
+              <dd className="font-medium">{data.discount_code} (-{formatCurrency(Number(data.discount_amount || 0))})</dd>
+            </div>
+          )}
           <div>
             <dt className="text-stone-500">Total</dt>
             <dd className="font-medium">{formatCurrency(Number(data.total))}</dd>
@@ -161,7 +169,19 @@ function OrderDetailPage() {
             )}
           </div>
           {!processedUpload && !data.printful_order_id && (
-            <div className="mt-4">
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-2">
+                <label htmlFor="provider" className="text-sm font-medium text-stone-700">Proveedor IA:</label>
+                <select
+                  id="provider"
+                  className="input"
+                  value={provider}
+                  onChange={(e) => setProvider(e.target.value as 'openai' | 'gemini')}
+                >
+                  <option value="openai">OpenAI (DALL·E / gpt-image-2)</option>
+                  <option value="gemini">Google Gemini</option>
+                </select>
+              </div>
               <Button
                 onClick={() => processImageMutation.mutate()}
                 disabled={processImageMutation.isPending}
@@ -171,7 +191,7 @@ function OrderDetailPage() {
                   : 'Generar imagen limpia con IA'}
               </Button>
               {processImageMutation.isError && (
-                <p className="mt-2 text-sm text-red-600">
+                <p className="text-sm text-red-600">
                   Error: {processImageMutation.error?.message}
                 </p>
               )}

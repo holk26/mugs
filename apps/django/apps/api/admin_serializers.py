@@ -98,12 +98,14 @@ class AdminOrderSerializer(serializers.ModelSerializer):
     lines = AdminOrderLineSerializer(many=True, read_only=True)
     raw_upload = serializers.SerializerMethodField()
     processed_upload = serializers.SerializerMethodField()
+    discount_code = serializers.SlugRelatedField(read_only=True, slug_field='code')
 
     class Meta:
         model = Order
         fields = [
             'id', 'status', 'customer_email', 'customer_name',
             'total', 'currency', 'shipping_address', 'raw_upload', 'processed_upload',
+            'discount_code', 'discount_amount',
             'lines', 'printful_order_id', 'printful_status', 'created_at', 'updated_at'
         ]
         read_only_fields = ['total', 'printful_order_id', 'printful_status']

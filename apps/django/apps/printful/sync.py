@@ -1,3 +1,5 @@
+import os
+
 from django.db import transaction
 from apps.products.models import Product, ProductVariant, ProductMedia
 from .client import PrintfulClient
@@ -128,7 +130,7 @@ def push_order(order, confirm=False):
         if line.processed_upload:
             absolute_url = line.processed_upload.url
             if absolute_url.startswith('/'):
-                absolute_url = f"https://mugs.app.moonsbow.com{absolute_url}"
+                absolute_url = f"{os.environ.get('PUBLIC_DJANGO_API_URL', 'https://backshop.app.moonsbow.com').rstrip('/')}{absolute_url}"
             item['files'].append({
                 'url': absolute_url,
                 'type': 'default',
@@ -136,7 +138,7 @@ def push_order(order, confirm=False):
         elif line.customer_upload:
             absolute_url = line.customer_upload.url
             if absolute_url.startswith('/'):
-                absolute_url = f"https://mugs.app.moonsbow.com{absolute_url}"
+                absolute_url = f"{os.environ.get('PUBLIC_DJANGO_API_URL', 'https://backshop.app.moonsbow.com').rstrip('/')}{absolute_url}"
             item['files'].append({
                 'url': absolute_url,
                 'type': 'default',

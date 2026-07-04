@@ -14,10 +14,13 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIndexRouteImport } from './routes/products.index'
 import { Route as PrintfulIndexRouteImport } from './routes/printful.index'
 import { Route as OrdersIndexRouteImport } from './routes/orders.index'
+import { Route as DiscountsIndexRouteImport } from './routes/discounts.index'
 import { Route as ProductsNewRouteImport } from './routes/products.new'
 import { Route as ProductsIdRouteImport } from './routes/products.$id'
 import { Route as PrintfulWebhooksRouteImport } from './routes/printful.webhooks'
 import { Route as OrdersIdRouteImport } from './routes/orders.$id'
+import { Route as DiscountsNewRouteImport } from './routes/discounts.new'
+import { Route as DiscountsIdRouteImport } from './routes/discounts.$id'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -44,6 +47,11 @@ const OrdersIndexRoute = OrdersIndexRouteImport.update({
   path: '/orders/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DiscountsIndexRoute = DiscountsIndexRouteImport.update({
+  id: '/discounts/',
+  path: '/discounts/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductsNewRoute = ProductsNewRouteImport.update({
   id: '/products/new',
   path: '/products/new',
@@ -64,14 +72,27 @@ const OrdersIdRoute = OrdersIdRouteImport.update({
   path: '/orders/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DiscountsNewRoute = DiscountsNewRouteImport.update({
+  id: '/discounts/new',
+  path: '/discounts/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiscountsIdRoute = DiscountsIdRouteImport.update({
+  id: '/discounts/$id',
+  path: '/discounts/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/discounts/$id': typeof DiscountsIdRoute
+  '/discounts/new': typeof DiscountsNewRoute
   '/orders/$id': typeof OrdersIdRoute
   '/printful/webhooks': typeof PrintfulWebhooksRoute
   '/products/$id': typeof ProductsIdRoute
   '/products/new': typeof ProductsNewRoute
+  '/discounts/': typeof DiscountsIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/printful/': typeof PrintfulIndexRoute
   '/products/': typeof ProductsIndexRoute
@@ -79,10 +100,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/discounts/$id': typeof DiscountsIdRoute
+  '/discounts/new': typeof DiscountsNewRoute
   '/orders/$id': typeof OrdersIdRoute
   '/printful/webhooks': typeof PrintfulWebhooksRoute
   '/products/$id': typeof ProductsIdRoute
   '/products/new': typeof ProductsNewRoute
+  '/discounts': typeof DiscountsIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/printful': typeof PrintfulIndexRoute
   '/products': typeof ProductsIndexRoute
@@ -91,10 +115,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/discounts/$id': typeof DiscountsIdRoute
+  '/discounts/new': typeof DiscountsNewRoute
   '/orders/$id': typeof OrdersIdRoute
   '/printful/webhooks': typeof PrintfulWebhooksRoute
   '/products/$id': typeof ProductsIdRoute
   '/products/new': typeof ProductsNewRoute
+  '/discounts/': typeof DiscountsIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/printful/': typeof PrintfulIndexRoute
   '/products/': typeof ProductsIndexRoute
@@ -104,10 +131,13 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/discounts/$id'
+    | '/discounts/new'
     | '/orders/$id'
     | '/printful/webhooks'
     | '/products/$id'
     | '/products/new'
+    | '/discounts/'
     | '/orders/'
     | '/printful/'
     | '/products/'
@@ -115,10 +145,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/discounts/$id'
+    | '/discounts/new'
     | '/orders/$id'
     | '/printful/webhooks'
     | '/products/$id'
     | '/products/new'
+    | '/discounts'
     | '/orders'
     | '/printful'
     | '/products'
@@ -126,10 +159,13 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
+    | '/discounts/$id'
+    | '/discounts/new'
     | '/orders/$id'
     | '/printful/webhooks'
     | '/products/$id'
     | '/products/new'
+    | '/discounts/'
     | '/orders/'
     | '/printful/'
     | '/products/'
@@ -138,10 +174,13 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  DiscountsIdRoute: typeof DiscountsIdRoute
+  DiscountsNewRoute: typeof DiscountsNewRoute
   OrdersIdRoute: typeof OrdersIdRoute
   PrintfulWebhooksRoute: typeof PrintfulWebhooksRoute
   ProductsIdRoute: typeof ProductsIdRoute
   ProductsNewRoute: typeof ProductsNewRoute
+  DiscountsIndexRoute: typeof DiscountsIndexRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
   PrintfulIndexRoute: typeof PrintfulIndexRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
@@ -184,6 +223,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrdersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/discounts/': {
+      id: '/discounts/'
+      path: '/discounts'
+      fullPath: '/discounts/'
+      preLoaderRoute: typeof DiscountsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/products/new': {
       id: '/products/new'
       path: '/products/new'
@@ -212,16 +258,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrdersIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/discounts/new': {
+      id: '/discounts/new'
+      path: '/discounts/new'
+      fullPath: '/discounts/new'
+      preLoaderRoute: typeof DiscountsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/discounts/$id': {
+      id: '/discounts/$id'
+      path: '/discounts/$id'
+      fullPath: '/discounts/$id'
+      preLoaderRoute: typeof DiscountsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  DiscountsIdRoute: DiscountsIdRoute,
+  DiscountsNewRoute: DiscountsNewRoute,
   OrdersIdRoute: OrdersIdRoute,
   PrintfulWebhooksRoute: PrintfulWebhooksRoute,
   ProductsIdRoute: ProductsIdRoute,
   ProductsNewRoute: ProductsNewRoute,
+  DiscountsIndexRoute: DiscountsIndexRoute,
   OrdersIndexRoute: OrdersIndexRoute,
   PrintfulIndexRoute: PrintfulIndexRoute,
   ProductsIndexRoute: ProductsIndexRoute,

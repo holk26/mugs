@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.orders',
     'apps.payments',
+    'apps.discounts',
     'apps.core',
     'anymail',
 ]
@@ -166,9 +167,19 @@ STRIPE_CHECKOUT_SHIPPING_COUNTRIES = [
 # OpenAI
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_IMAGE_MODEL = os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2")
-OPENAI_IMAGE_PROMPT = os.environ.get(
-    "OPENAI_IMAGE_PROMPT",
-    "Clean up this image for printing on a white ceramic mug. Remove the background, keep only the main subject, center it, make colors vibrant, and ensure a clean transparent or white background suitable for sublimation printing. Preserve the original subject faithfully."
+
+# Gemini
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_IMAGE_MODEL = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
+
+# Shared AI image cleanup config
+AI_IMAGE_PROVIDER = os.environ.get("AI_IMAGE_PROVIDER", "openai")
+AI_IMAGE_PROMPT = os.environ.get(
+    "AI_IMAGE_PROMPT",
+    "Clean up this image for printing on a white ceramic mug. Remove the background, "
+    "keep only the main subject, center it, make colors vibrant, and ensure a clean "
+    "transparent or white background suitable for sublimation printing. Preserve the "
+    "original subject faithfully.",
 )
 
 # Resend / email
