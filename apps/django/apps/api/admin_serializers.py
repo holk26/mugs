@@ -97,12 +97,13 @@ class AdminOrderLineSerializer(serializers.ModelSerializer):
 class AdminOrderSerializer(serializers.ModelSerializer):
     lines = AdminOrderLineSerializer(many=True, read_only=True)
     raw_upload = serializers.SerializerMethodField()
+    processed_upload = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = [
             'id', 'status', 'customer_email', 'customer_name',
-            'total', 'currency', 'shipping_address', 'raw_upload',
+            'total', 'currency', 'shipping_address', 'raw_upload', 'processed_upload',
             'lines', 'printful_order_id', 'printful_status', 'created_at', 'updated_at'
         ]
         read_only_fields = ['total', 'printful_order_id', 'printful_status']
@@ -112,6 +113,23 @@ class AdminOrderSerializer(serializers.ModelSerializer):
             if line.customer_upload:
                 return _upload_representation(line.customer_upload)
         return None
+
+    def get_processed_upload(self, order: Order):
+        for line in order.lines.all():
+            if line.processed_upload:
+                return _upload_representation(line.processed_upload)
+        return None
+
+
+class AdminOrderLineProcessedUploadSerializer(serializers.ModelSerializer):
+    processed_upload = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OrderLine
+        fields = ['id', 'processed_upload', 'processed_upload_generated_at', 'processed_upload_error']
+
+    def get_processed_upload(self, line: OrderLine):
+        return _upload_representation(line.processed_upload)
 
 
 class AdminOrderStatusUpdateSerializer(serializers.ModelSerializer):

@@ -122,6 +122,14 @@ STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 
+# OpenAI
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+OPENAI_IMAGE_MODEL = os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2")
+OPENAI_IMAGE_PROMPT = os.environ.get(
+    "OPENAI_IMAGE_PROMPT",
+    "Clean up this image for printing on a white ceramic mug. Remove the background, keep only the main subject, center it, make colors vibrant, and ensure a clean transparent or white background suitable for sublimation printing. Preserve the original subject faithfully."
+)
+
 # Resend / email
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "orders@recuerdomomentos.com")

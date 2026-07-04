@@ -52,9 +52,8 @@ export interface Order {
   lines: OrderLine[];
 }
 
-export interface PaymentIntent {
-  client_secret: string;
-  publishable_key: string;
+export interface CheckoutSession {
+  url: string;
 }
 
 async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
@@ -120,8 +119,8 @@ export async function uploadDrawing(
   return response.json();
 }
 
-export async function createPaymentIntent(orderId: string): Promise<PaymentIntent> {
-  return fetchJson('/api/v1/payments/stripe/intent/', {
+export async function createCheckoutSession(orderId: string): Promise<CheckoutSession> {
+  return fetchJson('/api/v1/payments/stripe/checkout/', {
     method: 'POST',
     body: JSON.stringify({ order_id: orderId }),
   });

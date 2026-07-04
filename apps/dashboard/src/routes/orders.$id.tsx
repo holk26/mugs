@@ -5,6 +5,7 @@ import {
   updateOrderStatus,
   pushOrderToPrintful,
   confirmPrintfulOrder,
+  processLineImage,
   type OrderLine,
 } from '@/api/orders';
 import apiClient from '@/api/client';
@@ -58,10 +59,22 @@ function OrderDetailPage() {
     },
   });
 
+  const processImageMutation = useMutation({
+    mutationFn: () => {
+      const line = data?.lines?.[0];
+      if (!line?.id) throw new Error('No line available for image processing');
+      return processLineImage(id, line.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['order', id] });
+    },
+  });
+
   if (isLoading) return <p>Cargando...</p>;
   if (!data) return <p>No se encontró la orden.</p>;
 
   const upload = data.raw_upload;
+  const processedUpload = data.processed_upload;
 
   return (
     <div className="space-y-6">
@@ -113,16 +126,57 @@ function OrderDetailPage() {
       {upload && (
         <Card>
           <h2 className="mb-4 text-lg font-semibold">Archivo del cliente</h2>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-stone-600">{upload.name || 'Archivo subido'}</p>
-            <a
-              href={resolveFileUrl(upload.file)}
-              download={upload.name || true}
-              className="inline-flex items-center justify-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
-            >
-              Descargar archivo subido
-            </a>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="mb-2 text-sm font-medium text-stone-700">Original</p>
+              <img
+                src={resolveFileUrl(upload.file)}
+                alt={upload.name || 'Original'}
+                className="h-48 w-full rounded-lg border border-stone-200 object-contain"
+              />
+              <a
+                href={resolveFileUrl(upload.file)}
+                download={upload.name || true}
+                className="mt-2 inline-flex items-center justify-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+              >
+                Descargar original
+              </a>
+            </div>
+            {processedUpload && (
+              <div>
+                <p className="mb-2 text-sm font-medium text-stone-700">Procesada por IA</p>
+                <img
+                  src={resolveFileUrl(processedUpload.file)}
+                  alt={processedUpload.name || 'Procesada'}
+                  className="h-48 w-full rounded-lg border border-stone-200 object-contain"
+                />
+                <a
+                  href={resolveFileUrl(processedUpload.file)}
+                  download={processedUpload.name || true}
+                  className="mt-2 inline-flex items-center justify-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+                >
+                  Descargar procesada
+                </a>
+              </div>
+            )}
           </div>
+          {!processedUpload && !data.printful_order_id && (
+            <div className="mt-4">
+              <Button
+                onClick={() => processImageMutation.mutate()}
+                disabled={processImageMutation.isPending}
+              >
+                {processImageMutation.isPending
+                  ? 'Procesando con IA...'
+                  : 'Generar imagen limpia con IA'}
+              </Button>
+              {processImageMutation.isError && (
+                <p className="mt-2 text-sm text-red-600">
+                  Error: {processImageMutation.error?.message}
+                </p>
+              )}
+            </div>
+          )}
         </Card>
       )}
 

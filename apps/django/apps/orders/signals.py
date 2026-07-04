@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from apps.core.email import send_order_confirmation_email, send_order_update_email
@@ -11,7 +12,8 @@ def handle_order_paid(sender, instance, created, **kwargs):
         return
 
     if instance.status == 'paid' and not instance.printful_order_id:
-        push_order(instance)
+        if settings.PRINTFUL_API_TOKEN:
+            push_order(instance)
         send_order_confirmation_email(instance)
     elif instance.status in ('processing', 'fulfilled', 'cancelled', 'failed') and instance.printful_order_id:
         send_order_update_email(instance)

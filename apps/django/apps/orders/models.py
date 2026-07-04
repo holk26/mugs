@@ -42,3 +42,11 @@ class OrderLine(models.Model):
         null=True,
         help_text='Customer drawing to be printed on the mug'
     )
+    processed_upload = models.FileField(
+        upload_to='processed/%Y/%m/%d/',
+        blank=True,
+        null=True,
+        help_text='AI-cleaned version of the customer drawing ready for Printful'
+    )
+    processed_upload_generated_at = models.DateTimeField(blank=True, null=True)
+    processed_upload_error = models.TextField(blank=True)

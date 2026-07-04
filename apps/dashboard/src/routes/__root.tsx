@@ -14,7 +14,7 @@ export const Route = createRootRoute({
     const isPublic = publicRoutes.includes(location.pathname);
     const store = useAuthStore.getState();
 
-    if (!store.accessToken) {
+    if (!store.accessToken || !store.user) {
       const refresh = localStorage.getItem('refresh_token');
       if (refresh) {
         try {

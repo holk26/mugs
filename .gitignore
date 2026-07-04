@@ -3,6 +3,9 @@ dist/
 
 # generated types
 .astro/
+*.tsbuildinfo
+*.config.d.ts
+*.config.js
 
 # dependencies
 node_modules/
@@ -39,3 +42,5 @@ docker-volumes/
 # internal planning docs
 docs/superpowers/
 
+apps/django/**/__pycache__/
+arquitectura.md

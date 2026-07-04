@@ -22,12 +22,12 @@ class TestStripeIntent:
             currency='USD',
         )
 
-    @patch('apps.api.payment_views.stripe.PaymentIntent.create')
-    def test_create_intent(self, mock_create):
-        mock_create.return_value = MagicMock(id='pi_test', client_secret='pi_test_secret')
-        url = reverse('create-payment-intent')
+    @patch('apps.api.payment_views.stripe.checkout.Session.create')
+    def test_create_checkout_session(self, mock_create):
+        mock_create.return_value = MagicMock(id='cs_test', url='https://checkout.stripe.com/test')
+        url = reverse('create-checkout-session')
         response = self.client.post(url, {'order_id': str(self.order.id)})
         assert response.status_code == 200
-        assert response.data['client_secret'] == 'pi_test_secret'
+        assert response.data['url'] == 'https://checkout.stripe.com/test'
         self.order.refresh_from_db()
-        assert self.order.payment_intent_id == 'pi_test'
+        assert self.order.payment_intent_id == 'cs_test'

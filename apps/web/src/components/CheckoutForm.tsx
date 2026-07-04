@@ -1,86 +1,30 @@
 import { useState, type FormEvent } from 'react';
-import {
-  Elements,
-  PaymentElement,
-  useStripe,
-  useElements,
-} from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
 import { useCart } from '../stores/cart';
 import {
   createOrder,
-  createPaymentIntent,
+  createCheckoutSession,
   uploadDrawing,
   dataUrlToFile,
   type OrderLine,
 } from '../lib/api';
-import { Lock } from 'lucide-react';
-
-const stripePromise = loadStripe(import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
-
-function PaymentForm({ orderId }: { orderId: string }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [error, setError] = useState<string>('');
-  const [processing, setProcessing] = useState(false);
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-
-    setProcessing(true);
-    const { error: submitError } = await elements.submit();
-    if (submitError) {
-      setError(submitError.message || 'Payment error');
-      setProcessing(false);
-      return;
-    }
-
-    const { error: confirmError } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/thanks?order=${orderId}`,
-      },
-    });
-
-    if (confirmError) {
-      setError(confirmError.message || 'Payment failed');
-    }
-    setProcessing(false);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-        <PaymentElement />
-      </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <button
-        type="submit"
-        disabled={!stripe || processing}
-        className="btn-primary w-full"
-      >
-        <Lock className="h-4 w-4" />
-        {processing ? 'Processing...' : 'Pay now'}
-      </button>
-    </form>
-  );
-}
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 
 export default function CheckoutForm() {
   const { items, total } = useCart();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [step, setStep] = useState<'form' | 'payment'>('form');
-  const [clientSecret, setClientSecret] = useState('');
   const [orderId, setOrderId] = useState('');
+  const [checkoutUrl, setCheckoutUrl] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleCreateOrder = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!email || items.length === 0) return;
 
     setError('');
+    setLoading(true);
     try {
       const order = await createOrder(items, { email, name });
       setOrderId(order.id);
@@ -93,11 +37,19 @@ export default function CheckoutForm() {
         }
       }
 
-      const intent = await createPaymentIntent(order.id);
-      setClientSecret(intent.client_secret);
+      const session = await createCheckoutSession(order.id);
+      setCheckoutUrl(session.url);
       setStep('payment');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Checkout failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePay = () => {
+    if (checkoutUrl) {
+      window.location.href = checkoutUrl;
     }
   };
 
@@ -167,22 +119,44 @@ export default function CheckoutForm() {
 
             {error && <p className="text-sm text-red-600">{error}</p>}
 
-            <button type="submit" className="btn-primary w-full">
-              Continue to payment
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full disabled:opacity-60"
+            >
+              {loading ? 'Processing...' : 'Continue to payment'}
             </button>
           </form>
         ) : (
-          <div className="mt-8">
-            <p className="text-sm text-stone-500">
-              Order <span className="font-medium text-stone-900">{orderId}</span>. Complete payment below.
-            </p>
-            {clientSecret && (
-              <div className="mt-4">
-                <Elements stripe={stripePromise} options={{ clientSecret }}>
-                  <PaymentForm orderId={orderId} />
-                </Elements>
-              </div>
-            )}
+          <div className="mt-8 space-y-6">
+            <button
+              onClick={() => setStep('form')}
+              className="inline-flex items-center text-sm font-medium text-stone-600 hover:text-stone-900"
+            >
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              Back to shipping
+            </button>
+
+            <div className="rounded-2xl border border-stone-100 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-stone-900">Complete your payment</h2>
+              <p className="mt-2 text-sm text-stone-600">
+                Order <span className="font-medium text-stone-900">{orderId}</span>
+              </p>
+              <p className="mt-4 text-sm text-stone-600">
+                You will be redirected to Stripe to complete the payment securely.
+              </p>
+
+              {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+
+              <button
+                onClick={handlePay}
+                disabled={!checkoutUrl || loading}
+                className="btn-primary mt-6 flex w-full items-center justify-center gap-2 disabled:opacity-60"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Pay with Stripe
+              </button>
+            </div>
           </div>
         )}
       </div>

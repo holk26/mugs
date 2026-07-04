@@ -2,6 +2,7 @@ import apiClient from './client';
 import type { PaginatedResponse } from './products';
 
 export interface OrderLine {
+  id: string;
   product_name: string;
   variant_name: string;
   quantity: number;
@@ -36,6 +37,7 @@ export interface Order {
   created_at: string;
   shipping_address?: ShippingAddress | null;
   raw_upload?: UploadFile | null;
+  processed_upload?: UploadFile | null;
   lines?: OrderLine[];
   printful_order_id?: string;
   printful_status?: string;
@@ -63,5 +65,10 @@ export async function pushOrderToPrintful(id: string) {
 
 export async function confirmPrintfulOrder(id: string) {
   const response = await apiClient.post(`/api/v1/admin/orders/${id}/printful/confirm/`);
+  return response.data;
+}
+
+export async function processLineImage(orderId: string, lineId: string) {
+  const response = await apiClient.post(`/api/v1/admin/orders/${orderId}/lines/${lineId}/process-image/`);
   return response.data;
 }

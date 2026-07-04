@@ -19,14 +19,16 @@ from apps.api.admin_serializers import (
     AdminCollectionSerializer,
     AdminOrderSerializer,
     AdminOrderStatusUpdateSerializer,
+    AdminOrderLineProcessedUploadSerializer,
     AdminPrintfulSyncLogSerializer,
     AdminPrintfulWebhookEventSerializer,
 )
 from apps.products.models import Product, ProductVariant, ProductMedia, Collection
-from apps.orders.models import Order
+from apps.orders.models import Order, OrderLine
 from apps.printful.models import PrintfulSyncLog, PrintfulWebhookEvent
 from apps.printful.sync import push_order, confirm_printful_order
 from apps.api.tasks import sync_printful_catalog
+from apps.orders.ai_cleanup import generate_cleaned_upload, ImageCleanupError
 
 User = get_user_model()
 
@@ -159,6 +161,28 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
             return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
         order.refresh_from_db()
         return Response(AdminOrderSerializer(order).data)
+
+    @action(detail=True, methods=['post'], url_path='lines/(?P<line_id>[^/.]+)/process-image')
+    def process_line_image(self, request, id=None, line_id=None):
+        """Generate an AI-cleaned image for a specific order line."""
+        order = self.get_object()
+        try:
+            line = order.lines.get(id=line_id)
+        except OrderLine.DoesNotExist:
+            return Response({'detail': 'Line not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not line.customer_upload:
+            return Response(
+                {'detail': 'This line has no customer upload.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            generate_cleaned_upload(line)
+        except ImageCleanupError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        return Response(AdminOrderLineProcessedUploadSerializer(line).data)
 
 
 class AdminStatsViewSet(viewsets.ViewSet):
