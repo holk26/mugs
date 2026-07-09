@@ -15,11 +15,11 @@ export default function CartDrawer({ isOpen, onClose, inline }: Props) {
   const contents = (
     <>
       {!inline && (
-        <div className="flex items-center justify-between border-b border-stone-100 px-6 py-5">
-          <h2 className="text-lg font-semibold tracking-tight text-stone-900">Your cart</h2>
+        <div className="flex items-center justify-between border-b border-earth/5 px-6 py-5">
+          <h2 className="font-serif text-xl tracking-tight text-earth">Your cart</h2>
           <button
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-900"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-stone transition hover:bg-earth/5 hover:text-earth"
             aria-label="Close cart"
           >
             <X className="h-5 w-5" />
@@ -30,11 +30,11 @@ export default function CartDrawer({ isOpen, onClose, inline }: Props) {
       <div className={`flex-1 overflow-y-auto px-6 ${inline ? 'py-0' : 'py-6'}`}>
         {items.length === 0 ? (
           <div className={`flex flex-col items-center text-center ${inline ? '' : 'h-full justify-center'}`}>
-            <p className="text-stone-500">Your cart is empty.</p>
+            <p className="text-stone">Your cart is empty.</p>
             <a
               href="/products"
               onClick={onClose}
-              className="mt-4 text-sm font-medium text-orange-700 hover:underline"
+              className="mt-4 text-sm font-semibold text-earth underline underline-offset-4 hover:text-clay"
             >
               Start shopping
             </a>
@@ -43,7 +43,7 @@ export default function CartDrawer({ isOpen, onClose, inline }: Props) {
           <ul className="space-y-6">
             {items.map((item) => (
               <li key={item.variantId} className="flex gap-4">
-                <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-stone-100 text-xs text-stone-400">
+                <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-cream text-xs text-stone">
                   {item.uploadPreview ? (
                     <img
                       src={item.uploadPreview}
@@ -55,20 +55,20 @@ export default function CartDrawer({ isOpen, onClose, inline }: Props) {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-stone-900">{item.title}</p>
-                  <p className="text-sm text-stone-500">{item.variantTitle}</p>
+                  <p className="truncate font-semibold text-earth">{item.title}</p>
+                  <p className="text-sm text-stone">{item.variantTitle}</p>
                   {item.uploadPreview && (
-                    <p className="mt-1 text-xs font-medium text-green-700">Drawing attached</p>
+                    <p className="mt-1 text-xs font-bold text-clay">Drawing attached</p>
                   )}
                 </div>
                 <div className="flex flex-col items-end gap-3">
-                  <p className="text-sm font-medium text-stone-900">
+                  <p className="font-mono text-sm font-bold text-earth">
                     ${(item.price * item.quantity).toFixed(2)}
                   </p>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => updateQuantity(item.variantId, Math.max(1, item.quantity - 1))}
-                      className="flex h-7 w-7 items-center justify-center rounded-full border border-stone-200 text-stone-600 transition hover:bg-stone-50"
+                      className="flex h-7 w-7 items-center justify-center rounded-full border border-earth/10 text-stone transition hover:bg-earth/5"
                       aria-label="Decrease quantity"
                     >
                       <Minus className="h-3 w-3" />
@@ -76,14 +76,14 @@ export default function CartDrawer({ isOpen, onClose, inline }: Props) {
                     <span className="w-6 text-center text-sm tabular-nums">{item.quantity}</span>
                     <button
                       onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
-                      className="flex h-7 w-7 items-center justify-center rounded-full border border-stone-200 text-stone-600 transition hover:bg-stone-50"
+                      className="flex h-7 w-7 items-center justify-center rounded-full border border-earth/10 text-stone transition hover:bg-earth/5"
                       aria-label="Increase quantity"
                     >
                       <Plus className="h-3 w-3" />
                     </button>
                     <button
                       onClick={() => removeItem(item.variantId)}
-                      className="ml-2 text-stone-400 transition hover:text-red-600"
+                      className="ml-2 text-stone transition hover:text-clay"
                       aria-label="Remove item"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -97,12 +97,12 @@ export default function CartDrawer({ isOpen, onClose, inline }: Props) {
       </div>
 
       {items.length > 0 && (
-        <div className={`border-stone-100 px-6 py-6 ${inline ? 'border-t' : 'border-t'}`}>
-          <div className="mb-5 flex justify-between text-base font-semibold text-stone-900">
+        <div className={`border-t border-earth/5 px-6 py-6`}>
+          <div className="mb-5 flex justify-between text-base font-bold text-earth">
             <span>Total</span>
-            <span>${total().toFixed(2)}</span>
+            <span className="font-mono">${total().toFixed(2)}</span>
           </div>
-          <a href="/checkout" onClick={onClose} className="btn-primary w-full">
+          <a href="/checkout" onClick={onClose} className="btn-primary w-full text-center">
             Checkout
           </a>
         </div>
@@ -117,11 +117,11 @@ export default function CartDrawer({ isOpen, onClose, inline }: Props) {
   return (
     <>
       <div
-        className="fixed inset-0 z-50 bg-stone-900/30 backdrop-blur-sm"
+        className="fixed inset-0 z-50 bg-earth/20 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col bg-white shadow-2xl">
+      <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col bg-cream shadow-2xl">
         {contents}
       </div>
     </>

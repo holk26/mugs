@@ -2,26 +2,82 @@
 export const prerender = false;
 import Layout from '../layouts/Layout.astro';
 import ProductCard from '../components/ProductCard';
+import UploadMoment from '../components/UploadMoment';
 import { listProducts } from '../lib/api';
 
 const { results: products } = await listProducts();
+const heroProduct = products[0];
+const heroImage = heroProduct?.medias[0]?.url;
 ---
 
 <Layout>
-  <section class="px-4 py-20 text-center md:py-28">
-    <div class="section">
-      <div class="mx-auto max-w-3xl rounded-3xl border border-orange-100/70 bg-white/70 px-6 py-12 shadow-lg shadow-orange-100/60 backdrop-blur-sm md:px-10">
-        <p class="text-sm font-semibold tracking-widest text-orange-600">Unique designs for lasting memories</p>
-        <h1 class="mt-4 text-4xl font-semibold tracking-tight text-stone-900 md:text-6xl">
-          Turn little drawings into lasting memories
+  <section class="section py-12 md:py-20">
+    <div class="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+      <div class="reveal order-2 lg:order-1">
+        <p class="eyebrow">Turn drawings into keepsakes</p>
+        <h1 class="mt-5 font-serif text-5xl leading-[1.05] tracking-tight text-earth md:text-6xl lg:text-7xl">
+          A mug for every little artist.
         </h1>
-        <p class="mt-6 text-lg leading-relaxed text-stone-600 md:text-xl">
-          Upload your child's artwork and we will print it on a beautiful ceramic mug.
+        <p class="mt-6 max-w-md text-lg leading-relaxed text-stone">
+          Upload your child's drawing and we'll print it on a beautiful ceramic mug they'll be proud of.
         </p>
-        <div class="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <a href="/products" class="btn-primary inline-flex">Shop mugs</a>
-          <a href="#how-it-works" class="btn-secondary inline-flex">How it works</a>
+        <div class="mt-8 flex flex-wrap items-center gap-4">
+          <a href="/products" class="btn-primary">Shop mugs</a>
+          <a href="#how-it-works" class="btn-secondary">How it works</a>
         </div>
+      </div>
+
+      <div class="reveal reveal-delay-1 order-1 lg:order-2">
+        <div class="relative mx-auto max-w-md lg:max-w-full">
+          <div class="absolute bottom-6 right-6 z-10 hidden rounded-full bg-sand px-4 py-2 text-xs font-bold text-earth shadow-sm md:block">
+            Handmade with love
+          </div>
+          <div class="paper-frame aspect-square">
+            {heroImage ? (
+              <img
+                src={heroImage}
+                alt={heroProduct?.medias[0]?.alt || heroProduct?.title}
+                class="h-full w-full rounded-xl object-cover"
+              />
+            ) : (
+              <div class="flex h-full items-center justify-center rounded-xl bg-cream text-stone">
+                No image
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how-it-works" class="section py-16 md:py-24">
+    <div class="text-center">
+      <p class="eyebrow">How it works</p>
+      <h2 class="mt-3 font-serif text-3xl tracking-tight text-earth md:text-4xl">
+        From paper to mug in three steps
+      </h2>
+    </div>
+    <div class="mt-12 grid gap-6 md:grid-cols-3">
+      <div class="reveal card p-6">
+        <span class="font-mono text-2xl font-bold text-clay">01</span>
+        <h3 class="mt-4 font-serif text-xl text-earth">Upload a drawing</h3>
+        <p class="mt-2 text-sm leading-relaxed text-stone">
+          Take a photo or scan your child's artwork and upload it on any product page.
+        </p>
+      </div>
+      <div class="reveal reveal-delay-1 card p-6">
+        <span class="font-mono text-2xl font-bold text-clay">02</span>
+        <h3 class="mt-4 font-serif text-xl text-earth">We digitize it</h3>
+        <p class="mt-2 text-sm leading-relaxed text-stone">
+          Our team cleans the lines and prepares the image for a crisp ceramic print.
+        </p>
+      </div>
+      <div class="reveal reveal-delay-2 card p-6">
+        <span class="font-mono text-2xl font-bold text-clay">03</span>
+        <h3 class="mt-4 font-serif text-xl text-earth">Shipped to you</h3>
+        <p class="mt-2 text-sm leading-relaxed text-stone">
+          The finished mug is packed with care and sent straight to your door.
+        </p>
       </div>
     </div>
   </section>
@@ -29,10 +85,11 @@ const { results: products } = await listProducts();
   <section class="section py-16 md:py-24">
     <div class="flex items-end justify-between">
       <div>
-        <h2 class="text-2xl font-semibold tracking-tight text-stone-900 md:text-3xl">Our mugs</h2>
-        <p class="mt-2 text-stone-500">Personalized with your child's own drawing.</p>
+        <p class="eyebrow">Featured</p>
+        <h2 class="mt-3 font-serif text-3xl tracking-tight text-earth md:text-4xl">Our mugs</h2>
+        <p class="mt-2 text-stone">Personalized with your child's own drawing.</p>
       </div>
-      <a href="/products" class="hidden text-sm font-medium text-orange-700 hover:underline md:block">
+      <a href="/products" class="hidden text-sm font-semibold text-earth underline underline-offset-4 transition hover:text-clay md:block">
         View all
       </a>
     </div>
@@ -41,31 +98,23 @@ const { results: products } = await listProducts();
         <ProductCard product={product} />
       ))}
     </div>
+    <div class="mt-10 text-center md:hidden">
+      <a href="/products" class="btn-secondary">View all mugs</a>
+    </div>
   </section>
 
-  <section id="how-it-works" class="border-t border-orange-100/80 bg-gradient-to-br from-orange-50/70 via-amber-50/70 to-white px-4 py-16">
-    <div class="section">
-      <div class="grid gap-8 md:grid-cols-3">
-        <div class="rounded-2xl bg-white p-6 shadow-sm">
-          <p class="text-sm font-semibold uppercase tracking-wider text-orange-700">01</p>
-          <h3 class="mt-3 text-lg font-semibold text-stone-900">Upload a drawing</h3>
-          <p class="mt-2 text-sm leading-relaxed text-stone-500">
-            Take a photo or scan your child's artwork and upload it on any product page.
-          </p>
-        </div>
-        <div class="rounded-2xl bg-white p-6 shadow-sm">
-          <p class="text-sm font-semibold uppercase tracking-wider text-orange-700">02</p>
-          <h3 class="mt-3 text-lg font-semibold text-stone-900">We digitize it</h3>
-          <p class="mt-2 text-sm leading-relaxed text-stone-500">
-            Our team cleans the lines and prepares the image for a crisp ceramic print.
-          </p>
-        </div>
-        <div class="rounded-2xl bg-white p-6 shadow-sm">
-          <p class="text-sm font-semibold uppercase tracking-wider text-orange-700">03</p>
-          <h3 class="mt-3 text-lg font-semibold text-stone-900">Shipped to you</h3>
-          <p class="mt-2 text-sm leading-relaxed text-stone-500">
-            The finished mug is packed with care and sent straight to your door.
-          </p>
+  <section class="section py-16 md:py-24">
+    <div class="reveal overflow-hidden rounded-3xl bg-earth px-6 py-14 text-cream md:px-12 md:py-20">
+      <div class="mx-auto max-w-2xl text-center">
+        <p class="font-mono text-xs font-bold uppercase tracking-[0.2em] text-sand">Ready to start?</p>
+        <h2 class="mt-4 font-serif text-3xl tracking-tight md:text-4xl">
+          Upload a drawing and see the magic
+        </h2>
+        <p class="mt-4 text-cream/70">
+          Try our upload preview. Then pick a mug and we'll handle the rest.
+        </p>
+        <div class="mt-8">
+          <UploadMoment client:load />
         </div>
       </div>
     </div>
