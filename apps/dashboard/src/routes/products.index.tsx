@@ -4,6 +4,7 @@ import { listProducts } from '@/api/products';
 import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { PrintfulImportPanel } from '@/components/printful/PrintfulImportPanel';
 import { Plus } from 'lucide-react';
 import type { Product } from '@/api/products';
 
@@ -39,6 +40,7 @@ function ProductsPage() {
           <Button className="gap-2"><Plus className="h-4 w-4" /> Nuevo producto</Button>
         </Link>
       </div>
+      <PrintfulImportPanel />
       <DataTable columns={columns} data={data?.results || []} keyExtractor={(p) => p.id} isLoading={isLoading} />
     </div>
   );

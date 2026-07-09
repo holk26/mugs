@@ -148,3 +148,14 @@ class AdminPrintfulWebhookEventSerializer(serializers.ModelSerializer):
     class Meta:
         model = PrintfulWebhookEvent
         fields = ['id', 'event_type', 'payload', 'processed', 'created_at']
+
+
+class AdminPrintfulStoreProductSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    thumbnail_url = serializers.URLField(required=False, allow_blank=True)
+    synced = serializers.IntegerField(required=False)
+
+
+class AdminPrintfulImportSerializer(serializers.Serializer):
+    printful_product_id = serializers.IntegerField(min_value=1)

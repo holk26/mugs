@@ -56,6 +56,8 @@ urlpatterns += [
         ])),
                 path('printful/', include([
             path('sync/', AdminPrintfulViewSet.as_view({'post': 'sync'})),
+            path('store-products/', AdminPrintfulViewSet.as_view({'get': 'store_products'})),
+            path('store-products/import/', AdminPrintfulViewSet.as_view({'post': 'import_store_product'})),
             path('logs/', AdminPrintfulViewSet.as_view({'get': 'logs'})),
             path('webhooks/', AdminPrintfulViewSet.as_view({'get': 'webhooks'})),
         ])),

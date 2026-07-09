@@ -40,7 +40,8 @@ class CatalogSync:
             'errors': self.errors,
         }
 
-    def _sync_product(self, printful_product_id):
+    def sync_product(self, printful_product_id):
+        """Sync a single Printful store product into the local catalog."""
         response = self.client.get_store_product(printful_product_id)
         sync_product = response['result']['sync_product']
         sync_variants = response['result']['sync_variants']
@@ -103,6 +104,12 @@ class CatalogSync:
                         defaults={'type': 'image', 'order': index}
                     )
                 break
+
+        return product, created
+
+    def _sync_product(self, printful_product_id):
+        """Backwards-compatible alias for sync_product."""
+        return self.sync_product(printful_product_id)
 
 
 def push_order(order, confirm=False):

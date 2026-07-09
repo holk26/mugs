@@ -22,6 +22,8 @@ from apps.api.admin_serializers import (
     AdminOrderLineProcessedUploadSerializer,
     AdminPrintfulSyncLogSerializer,
     AdminPrintfulWebhookEventSerializer,
+    AdminPrintfulStoreProductSerializer,
+    AdminPrintfulImportSerializer,
 )
 from apps.products.models import Product, ProductVariant, ProductMedia, Collection
 from apps.orders.models import Order, OrderLine
@@ -230,6 +232,62 @@ class AdminPrintfulViewSet(viewsets.ViewSet):
             'created': log.products_created,
             'updated': log.products_updated,
             'errors': log.errors,
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='store-products')
+    def store_products(self, request):
+        from apps.printful.sync import CatalogSync
+
+        search = request.query_params.get('search', '').strip()
+        try:
+            limit = min(int(request.query_params.get('limit', 100)), 100)
+            offset = max(int(request.query_params.get('offset', 0)), 0)
+        except ValueError:
+            return Response(
+                {'detail': 'Invalid pagination parameters.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        client = CatalogSync().client
+        response = client.get_store_products(limit=limit, offset=offset)
+        products = response.get('result', [])
+        paging = response.get('paging', {})
+
+        if search:
+            products = [
+                p for p in products
+                if search.lower() in (p.get('name') or '').lower()
+            ]
+
+        serializer = AdminPrintfulStoreProductSerializer(products, many=True)
+        return Response({
+            'items': serializer.data,
+            'total': paging.get('total', len(products)),
+            'limit': limit,
+            'offset': offset,
+        })
+
+    @action(detail=False, methods=['post'], url_path='store-products/import')
+    def import_store_product(self, request):
+        from apps.printful.sync import CatalogSync
+
+        serializer = AdminPrintfulImportSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        printful_product_id = serializer.validated_data['printful_product_id']
+
+        try:
+            product, created = CatalogSync().sync_product(printful_product_id)
+        except Exception as exc:
+            return Response(
+                {'detail': f'Failed to import Printful product: {exc}'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response({
+            'id': str(product.id),
+            'handle': product.handle,
+            'title': product.title,
+            'created': created,
         }, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], url_path='logs')
