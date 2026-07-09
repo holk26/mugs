@@ -10,19 +10,36 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='orderline',
-            name='processed_upload',
-            field=models.FileField(blank=True, help_text='AI-cleaned version of the customer drawing ready for Printful', null=True, upload_to='processed/%Y/%m/%d/'),
-        ),
-        migrations.AddField(
-            model_name='orderline',
-            name='processed_upload_error',
-            field=models.TextField(blank=True),
-        ),
-        migrations.AddField(
-            model_name='orderline',
-            name='processed_upload_generated_at',
-            field=models.DateTimeField(blank=True, null=True),
+        # The production database already has these columns from a previous
+        # partial migration, so make the schema change idempotent.
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql="""
+                        ALTER TABLE orders_orderline
+                        ADD COLUMN IF NOT EXISTS processed_upload varchar(100),
+                        ADD COLUMN IF NOT EXISTS processed_upload_error text NOT NULL DEFAULT '',
+                        ADD COLUMN IF NOT EXISTS processed_upload_generated_at timestamp with time zone NULL;
+                    """,
+                    reverse_sql=migrations.RunSQL.noop,
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name='orderline',
+                    name='processed_upload',
+                    field=models.FileField(blank=True, help_text='AI-cleaned version of the customer drawing ready for Printful', null=True, upload_to='processed/%Y/%m/%d/'),
+                ),
+                migrations.AddField(
+                    model_name='orderline',
+                    name='processed_upload_error',
+                    field=models.TextField(blank=True),
+                ),
+                migrations.AddField(
+                    model_name='orderline',
+                    name='processed_upload_generated_at',
+                    field=models.DateTimeField(blank=True, null=True),
+                ),
+            ],
         ),
     ]
