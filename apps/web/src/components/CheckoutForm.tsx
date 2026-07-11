@@ -22,7 +22,6 @@ export default function CheckoutForm() {
   const [name, setName] = useState('');
   const [step, setStep] = useState<'form' | 'payment'>('form');
   const [orderId, setOrderId] = useState('');
-  const [checkoutUrl, setCheckoutUrl] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -48,8 +47,6 @@ export default function CheckoutForm() {
         }
       }
 
-      const session = await createCheckoutSession(order.id);
-      setCheckoutUrl(session.url);
       setStep('payment');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Checkout failed');
@@ -90,9 +87,18 @@ export default function CheckoutForm() {
     }
   };
 
-  const handlePay = () => {
-    if (checkoutUrl) {
-      window.location.href = checkoutUrl;
+  const handlePay = async () => {
+    if (!orderId) return;
+
+    setLoading(true);
+    setError('');
+    try {
+      const session = await createCheckoutSession(orderId);
+      window.location.href = session.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Payment failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -251,7 +257,7 @@ export default function CheckoutForm() {
 
               <button
                 onClick={handlePay}
-                disabled={!checkoutUrl || loading}
+                disabled={loading || couponLoading}
                 className="btn-primary mt-6 flex w-full items-center justify-center gap-2 disabled:opacity-60"
               >
                 <ExternalLink className="h-4 w-4" />
