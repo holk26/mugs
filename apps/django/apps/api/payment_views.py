@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from apps.payments.models import PaymentGateway
 from apps.orders.models import Order
+from apps.discounts.models import DiscountUsage
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -65,18 +66,33 @@ def create_checkout_session(request):
             }
         ]
 
+    session_kwargs = {
+        'payment_method_types': ['card'],
+        'line_items': line_items,
+        'mode': 'payment',
+        'success_url': success_url,
+        'cancel_url': cancel_url,
+        'metadata': {'order_id': str(order.id)},
+        'shipping_address_collection': {
+            'allowed_countries': ['US', 'CA', 'MX', 'ES', 'AR', 'CL', 'CO', 'PE', 'UY', 'EC', 'BO', 'VE', 'PA', 'CR', 'GT', 'SV', 'HN', 'NI', 'DO', 'PR'],
+        },
+    }
+
+    subtotal = sum(line.price * line.quantity for line in order.lines.all())
+    if order.discount_code and order.discount_amount and order.discount_amount > 0 and order.discount_amount <= subtotal:
+        try:
+            coupon = stripe.Coupon.create(
+                amount_off=int(order.discount_amount * 100),
+                currency=order.currency.lower(),
+                duration='once',
+                name=order.discount_code.code,
+            )
+            session_kwargs['discounts'] = [{'coupon': coupon.id}]
+        except stripe.error.StripeError as e:
+            return Response({'detail': f'Failed to create discount: {e}'}, status=status.HTTP_502_BAD_GATEWAY)
+
     try:
-        session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=line_items,
-            mode='payment',
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={'order_id': str(order.id)},
-            shipping_address_collection={
-                'allowed_countries': ['US', 'CA', 'MX', 'ES', 'AR', 'CL', 'CO', 'PE', 'UY', 'EC', 'BO', 'VE', 'PA', 'CR', 'GT', 'SV', 'HN', 'NI', 'DO', 'PR'],
-            },
-        )
+        session = stripe.checkout.Session.create(**session_kwargs)
     except stripe.error.StripeError as e:
         return Response({'detail': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
 
@@ -84,6 +100,7 @@ def create_checkout_session(request):
     order.save(update_fields=['payment_intent_id'])
 
     return Response({'url': session.url})
+
 
 
 @api_view(['POST'])
@@ -132,5 +149,14 @@ def stripe_webhook(request):
                     'country': address.get('country', ''),
                 }
                 order.save(update_fields=['shipping_address'])
+
+        if order.discount_code and not DiscountUsage.objects.filter(order=order, discount_code=order.discount_code).exists():
+            identifier = str(order.user.id) if order.user else order.customer_email.lower()
+            DiscountUsage.objects.create(
+                discount_code=order.discount_code,
+                order=order,
+                identifier=identifier,
+                amount_saved=order.discount_amount or 0,
+            )
 
     return Response({'status': 'ok'})

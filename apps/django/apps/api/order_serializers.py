@@ -6,18 +6,20 @@ from apps.products.models import ProductVariant
 class OrderLineSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderLine
-        fields = ['id', 'variant', 'title', 'quantity', 'price', 'customer_upload']
+        fields = ['id', 'variant', 'title', 'quantity', 'price', 'customer_upload', 'processed_upload']
         read_only_fields = ['title', 'price']
 
 
 class OrderSerializer(serializers.ModelSerializer):
     lines = OrderLineSerializer(many=True)
+    discount_code = serializers.SlugRelatedField(read_only=True, slug_field='code')
 
     class Meta:
         model = Order
         fields = [
             'id', 'status', 'customer_email', 'customer_name',
             'total', 'currency', 'shipping_address', 'lines',
+            'discount_code', 'discount_amount',
             'printful_order_id', 'printful_status', 'created_at', 'updated_at'
         ]
         read_only_fields = ['status', 'total', 'printful_order_id', 'printful_status']

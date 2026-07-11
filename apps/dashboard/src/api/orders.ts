@@ -41,6 +41,8 @@ export interface Order {
   lines?: OrderLine[];
   printful_order_id?: string;
   printful_status?: string;
+  discount_code?: string | null;
+  discount_amount?: number | string;
 }
 
 export async function listOrders(params?: Record<string, unknown>): Promise<PaginatedResponse<Order>> {
@@ -68,7 +70,9 @@ export async function confirmPrintfulOrder(id: string) {
   return response.data;
 }
 
-export async function processLineImage(orderId: string, lineId: string) {
-  const response = await apiClient.post(`/api/v1/admin/orders/${orderId}/lines/${lineId}/process-image/`);
+export async function processLineImage(orderId: string, lineId: string, provider?: 'openai' | 'gemini') {
+  const response = await apiClient.post(`/api/v1/admin/orders/${orderId}/lines/${lineId}/process-image/`, {
+    provider,
+  });
   return response.data;
 }

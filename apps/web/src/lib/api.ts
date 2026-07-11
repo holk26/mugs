@@ -56,6 +56,28 @@ export interface CheckoutSession {
   url: string;
 }
 
+export interface DiscountResult {
+  discount_code: string;
+  discount_type: 'percentage' | 'fixed_amount';
+  value: string;
+  discount_amount: string;
+  order_total: string;
+}
+
+export async function applyDiscount(orderId: string, code: string): Promise<DiscountResult> {
+  return fetchJson('/api/v1/discounts/apply', {
+    method: 'POST',
+    body: JSON.stringify({ order_id: orderId, code }),
+  });
+}
+
+export async function removeDiscount(orderId: string): Promise<DiscountResult> {
+  return fetchJson('/api/v1/discounts/remove', {
+    method: 'POST',
+    body: JSON.stringify({ order_id: orderId }),
+  });
+}
+
 async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options?.headers },

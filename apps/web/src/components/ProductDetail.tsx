@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { useCart } from '../stores/cart';
 import type { Product } from '../lib/api';
 import UploadZone from './UploadZone';
-import ProductGallery from './ProductGallery';
 import { Check, ShoppingBag } from 'lucide-react';
 
 interface Props {
@@ -14,12 +13,15 @@ export default function ProductDetail({ product }: Props) {
   const [preview, setPreview] = useState<string>('');
   const [fileName, setFileName] = useState<string>('');
   const [added, setAdded] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const addItem = useCart((s) => s.addItem);
 
   const selectedVariant = useMemo(
     () => product.variants.find((v) => v.id === variantId) || product.variants[0],
     [variantId, product.variants]
   );
+
+  const images = product.medias?.length ? product.medias : [];
 
   useEffect(() => {
     return () => {
@@ -66,22 +68,55 @@ export default function ProductDetail({ product }: Props) {
   return (
     <div className="section py-12 md:py-20">
       <div className="grid gap-10 md:grid-cols-2 lg:gap-16">
-        <div className="reveal">
-          <ProductGallery medias={product.medias} title={product.title} />
+        <div className="space-y-4">
+          <div className="overflow-hidden rounded-3xl bg-stone-100">
+            {images[selectedImageIndex] ? (
+              <img
+                src={images[selectedImageIndex].url}
+                alt={images[selectedImageIndex].alt || product.title}
+                className="aspect-square h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex aspect-square items-center justify-center text-stone-400">
+                No image
+              </div>
+            )}
+          </div>
+
+          {images.length > 1 && (
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {images.map((media, index) => (
+                <button
+                  key={media.id}
+                  onClick={() => setSelectedImageIndex(index)}
+                  className={`relative flex-shrink-0 overflow-hidden rounded-xl border-2 transition ${
+                    index === selectedImageIndex
+                      ? 'border-orange-700'
+                      : 'border-transparent hover:border-stone-300'
+                  }`}
+                >
+                  <img
+                    src={media.url}
+                    alt={media.alt || product.title}
+                    className="h-20 w-20 object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="reveal reveal-delay-1 flex flex-col">
-          <p className="eyebrow">Personalized mug</p>
-          <h1 className="mt-3 font-serif text-4xl tracking-tight text-earth md:text-5xl">
+        <div className="flex flex-col">
+          <h1 className="text-3xl font-semibold tracking-tight text-stone-900 md:text-4xl">
             {product.title}
           </h1>
-          <p className="mt-4 font-mono text-2xl font-bold text-earth">
+          <p className="mt-3 text-2xl font-medium text-stone-700">
             ${selectedVariant?.price}
           </p>
-          <p className="mt-6 leading-relaxed text-stone">{product.description}</p>
+          <p className="mt-6 leading-relaxed text-stone-600">{product.description}</p>
 
           <div className="mt-8">
-            <label className="text-sm font-semibold text-earth">Size</label>
+            <label className="text-sm font-semibold text-stone-900">Size</label>
             <div className="mt-3 flex flex-wrap gap-2">
               {product.variants.map((v) => (
                 <button
@@ -89,8 +124,8 @@ export default function ProductDetail({ product }: Props) {
                   onClick={() => setVariantId(v.id)}
                   className={`rounded-full border px-5 py-2.5 text-sm font-medium transition ${
                     variantId === v.id
-                      ? 'border-earth bg-earth text-cream'
-                      : 'border-earth/10 bg-white text-stone hover:border-clay'
+                      ? 'border-orange-700 bg-orange-700 text-white'
+                      : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
                   }`}
                 >
                   {v.title}
@@ -100,11 +135,11 @@ export default function ProductDetail({ product }: Props) {
           </div>
 
           <div className="mt-8">
-            <label className="text-sm font-semibold text-earth">Upload your drawing</label>
+            <label className="text-sm font-semibold text-stone-900">Upload your drawing</label>
             <div className="mt-3">
               <UploadZone onFile={handleFile} preview={preview} onClear={handleClear} />
             </div>
-            <p className="mt-3 text-sm text-stone">
+            <p className="mt-3 text-sm text-stone-500">
               We will digitize, clean, and print it on the mug.
             </p>
           </div>
@@ -112,7 +147,7 @@ export default function ProductDetail({ product }: Props) {
           <button
             onClick={handleAdd}
             disabled={!selectedVariant || added}
-            className="btn-primary mt-10 w-full md:w-max"
+            className="btn-primary mt-10 w-full md:w-auto"
           >
             {added ? (
               <>
