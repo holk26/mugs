@@ -32,8 +32,8 @@ def create_checkout_session(request):
         return Response({'detail': 'Order is not pending.'}, status=status.HTTP_400_BAD_REQUEST)
 
     site_url = settings.SITE_URL.rstrip('/')
-    success_url = f'{site_url}/thanks/'
-    cancel_url = f'{site_url}/checkout/'
+    success_url = f'{site_url}/thanks/?order={order.id}&session_id={{CHECKOUT_SESSION_ID}}'
+    cancel_url = f'{site_url}/checkout/?order={order.id}&canceled=1'
 
     line_items = [
         {

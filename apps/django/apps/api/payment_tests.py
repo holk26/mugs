@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 from apps.users.models import User
@@ -22,6 +23,7 @@ class TestStripeIntent:
             currency='USD',
         )
 
+    @override_settings(SITE_URL='https://example.com')
     @patch('apps.api.payment_views.stripe.checkout.Session.create')
     def test_create_checkout_session(self, mock_create):
         mock_create.return_value = MagicMock(id='cs_test', url='https://checkout.stripe.com/test')
@@ -31,3 +33,8 @@ class TestStripeIntent:
         assert response.data['url'] == 'https://checkout.stripe.com/test'
         self.order.refresh_from_db()
         assert self.order.payment_intent_id == 'cs_test'
+
+        expected_success = f'https://example.com/thanks/?order={self.order.id}&session_id={{CHECKOUT_SESSION_ID}}'
+        expected_cancel = f'https://example.com/checkout/?order={self.order.id}&canceled=1'
+        assert mock_create.call_args.kwargs['success_url'] == expected_success
+        assert mock_create.call_args.kwargs['cancel_url'] == expected_cancel
