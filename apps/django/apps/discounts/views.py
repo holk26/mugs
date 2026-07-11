@@ -126,6 +126,12 @@ def apply_discount(request):
     if not is_valid:
         return Response({'detail': message}, status=status.HTTP_400_BAD_REQUEST)
 
+    if not discount.applies_to_order(order):
+        return Response(
+            {'detail': 'This discount code does not apply to the items in your order.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     discount_amount = discount.calculate_discount(order_total)
 
     with transaction.atomic():

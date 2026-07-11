@@ -97,6 +97,32 @@ class DiscountCode(models.Model):
 
         return min(discount, order_total)
 
+    def applies_to_order(self, order: Order) -> bool:
+        if self.applies_to == 'all':
+            return True
+
+        if self.applies_to == 'products':
+            product_ids = {str(pid) for pid in self.product_ids}
+            return any(
+                line.variant and str(line.variant.product_id) in product_ids
+                for line in order.lines.all()
+            )
+
+        if self.applies_to == 'collections':
+            from apps.products.models import Collection
+            collection_ids = {str(cid) for cid in self.collection_ids}
+            for line in order.lines.all():
+                if not line.variant:
+                    continue
+                if Collection.objects.filter(
+                    id__in=list(collection_ids),
+                    products=line.variant.product,
+                ).exists():
+                    return True
+            return False
+
+        return False
+
 
 class DiscountUsage(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
