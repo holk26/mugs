@@ -23,3 +23,13 @@ class PaymentTransaction(models.Model):
     external_id = models.CharField(max_length=255, blank=True)
     payload = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class WebhookEvent(models.Model):
+    event_id = models.CharField(max_length=100, unique=True, db_index=True)
+    event_type = models.CharField(max_length=100)
+    payload = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']

@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.orders',
     'apps.payments',
+    'apps.discounts',
     'apps.core',
     'anymail',
 ]
@@ -40,7 +41,37 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'apps.api.middleware.RequestLogMiddleware',
 ]
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'mugs.api': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
 
 ROOT_URLCONF = 'config.urls'
 
@@ -116,18 +147,39 @@ PRINTFUL_API_TOKEN = os.environ.get('PRINTFUL_API_TOKEN', '')
 PRINTFUL_STORE_ID = os.environ.get('PRINTFUL_STORE_ID', '')
 PRINTFUL_WEBHOOK_SECRET = os.environ.get('PRINTFUL_WEBHOOK_SECRET', '')
 PRINTFUL_BASE_URL = os.environ.get('PRINTFUL_BASE_URL', 'https://api.printful.com')
+PRINTFUL_AUTO_PUSH = os.environ.get('PRINTFUL_AUTO_PUSH', 'False').lower() in ('1', 'true', 'yes', 'on')
+
+SITE_URL = os.environ.get("SITE_URL", "http://localhost:4321")
 
 # Stripe
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_CHECKOUT_SHIPPING_COUNTRIES = [
+    c.strip()
+    for c in os.environ.get(
+        "STRIPE_CHECKOUT_SHIPPING_COUNTRIES",
+        "US,CA,MX,ES,CO,AR,CL,PE,UY,PY,BO,EC,PA,CR,GT,HN,SV,NI,DO,PR",
+    ).split(",")
+    if c.strip()
+]
 
 # OpenAI
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_IMAGE_MODEL = os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2")
-OPENAI_IMAGE_PROMPT = os.environ.get(
-    "OPENAI_IMAGE_PROMPT",
-    "Clean up this image for printing on a white ceramic mug. Remove the background, keep only the main subject, center it, make colors vibrant, and ensure a clean transparent or white background suitable for sublimation printing. Preserve the original subject faithfully."
+
+# Gemini
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_IMAGE_MODEL = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
+
+# Shared AI image cleanup config
+AI_IMAGE_PROVIDER = os.environ.get("AI_IMAGE_PROVIDER", "openai")
+AI_IMAGE_PROMPT = os.environ.get(
+    "AI_IMAGE_PROMPT",
+    "Clean up this image for printing on a white ceramic mug. Remove the background, "
+    "keep only the main subject, center it, make colors vibrant, and ensure a clean "
+    "transparent or white background suitable for sublimation printing. Preserve the "
+    "original subject faithfully.",
 )
 
 # Resend / email

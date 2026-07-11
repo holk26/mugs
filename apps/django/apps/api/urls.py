@@ -16,6 +16,8 @@ from .admin_views import (
     AdminStatsViewSet,
     AdminPrintfulViewSet,
 )
+from apps.discounts.admin_views import AdminDiscountCodeViewSet
+from apps.discounts.views import apply_discount, remove_discount
 
 router = DefaultRouter()
 router.register(r'products', ProductViewSet, basename='product')
@@ -27,6 +29,7 @@ admin_router.register(r'users', AdminUserViewSet, basename='admin-user')
 admin_router.register(r'products', AdminProductViewSet, basename='admin-product')
 admin_router.register(r'collections', AdminCollectionViewSet, basename='admin-collection')
 admin_router.register(r'orders', AdminOrderViewSet, basename='admin-order')
+admin_router.register(r'discounts', AdminDiscountCodeViewSet, basename='admin-discount')
 
 urlpatterns = [
     path('health/', lambda r: __import__('django.http').http.JsonResponse({'status': 'ok'})),
@@ -36,6 +39,8 @@ urlpatterns = [
     path('payments/gateways/', payment_gateways, name='payment-gateways'),
     path('payments/stripe/checkout/', create_checkout_session, name='create-checkout-session'),
     path('payments/stripe/webhook/', stripe_webhook, name='stripe-webhook'),
+    path('discounts/apply', apply_discount, name='discount-apply'),
+    path('discounts/remove', remove_discount, name='discount-remove'),
     path('', include(router.urls)),
 ]
 
@@ -54,7 +59,7 @@ urlpatterns += [
             path('', AdminProductMediaViewSet.as_view({'get': 'list', 'post': 'create'})),
             path('<uuid:id>/', AdminProductMediaViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
         ])),
-                path('printful/', include([
+        path('printful/', include([
             path('sync/', AdminPrintfulViewSet.as_view({'post': 'sync'})),
             path('store-products/', AdminPrintfulViewSet.as_view({'get': 'store_products'})),
             path('store-products/import/', AdminPrintfulViewSet.as_view({'post': 'import_store_product'})),
@@ -63,5 +68,4 @@ urlpatterns += [
         ])),
         path('stats/dashboard/', AdminStatsViewSet.as_view({'get': 'dashboard'})),
     ]))
-,
 ]

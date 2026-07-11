@@ -1,6 +1,7 @@
 from django.utils import timezone
 from django.db.models.functions import TruncDate
 from django.db.models import Count
+from django.conf import settings
 from datetime import timedelta
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
@@ -25,12 +26,14 @@ from apps.api.admin_serializers import (
     AdminPrintfulStoreProductSerializer,
     AdminPrintfulImportSerializer,
 )
+from apps.discounts.models import DiscountCode, DiscountUsage
+from apps.discounts.serializers import AdminDiscountCodeSerializer, AdminDiscountUsageSerializer
 from apps.products.models import Product, ProductVariant, ProductMedia, Collection
 from apps.orders.models import Order, OrderLine
 from apps.printful.models import PrintfulSyncLog, PrintfulWebhookEvent
 from apps.printful.sync import push_order, confirm_printful_order
 from apps.api.tasks import sync_printful_catalog
-from apps.orders.ai_cleanup import generate_cleaned_upload, ImageCleanupError
+from apps.orders.ai_cleanup import ImageCleanupError
 
 User = get_user_model()
 
@@ -179,8 +182,11 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        provider = request.data.get('provider') or getattr(settings, 'AI_IMAGE_PROVIDER', 'openai')
+
         try:
-            generate_cleaned_upload(line)
+            from apps.orders.ai_cleanup import generate_cleaned_upload
+            generate_cleaned_upload(line, provider=provider)
         except ImageCleanupError as exc:
             return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
 

@@ -3,6 +3,108 @@
 from django.db import migrations, models
 
 
+def _table_name(apps):
+    """Return the database table name for OrderLine from the historical model."""
+    return apps.get_model('orders', 'OrderLine')._meta.db_table
+
+
+def _existing_columns(schema_editor, table_name):
+    """Return a set of column names for the given table."""
+    with schema_editor.connection.cursor() as cursor:
+        if schema_editor.connection.vendor == 'postgresql':
+            cursor.execute(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = %s
+                  AND table_schema = current_schema()
+                """,
+                [table_name],
+            )
+            return {row[0] for row in cursor.fetchall()}
+        cursor.execute("PRAGMA table_info(" + table_name + ")")
+        return {row[1] for row in cursor.fetchall()}
+
+
+def add_processed_upload_columns(apps, schema_editor):
+    """Add processed_upload columns idempotently.
+
+    The production PostgreSQL database already has these columns from a
+    previous partial migration, so use IF NOT EXISTS there. For other
+    backends (e.g. SQLite used in local development) inspect the schema
+    and add missing columns manually.
+    """
+    table_name = _table_name(apps)
+    existing = _existing_columns(schema_editor, table_name)
+
+    if schema_editor.connection.vendor == 'postgresql':
+        schema_editor.execute(
+            "ALTER TABLE " + table_name + "\n"
+            "ADD COLUMN IF NOT EXISTS processed_upload varchar(100),\n"
+            "ADD COLUMN IF NOT EXISTS processed_upload_error text NOT NULL DEFAULT '',\n"
+            "ADD COLUMN IF NOT EXISTS processed_upload_generated_at timestamp with time zone NULL;"
+        )
+        return
+
+    # Fallback for SQLite and other backends.
+    if 'processed_upload' not in existing:
+        schema_editor.execute(
+            "ALTER TABLE " + table_name
+            + " ADD COLUMN processed_upload varchar(100);"
+        )
+    if 'processed_upload_error' not in existing:
+        schema_editor.execute(
+            "ALTER TABLE " + table_name
+            + " ADD COLUMN processed_upload_error text NOT NULL DEFAULT '';"
+        )
+    if 'processed_upload_generated_at' not in existing:
+        schema_editor.execute(
+            "ALTER TABLE " + table_name
+            + " ADD COLUMN processed_upload_generated_at datetime NULL;"
+        )
+
+
+def remove_processed_upload_columns(apps, schema_editor):
+    """Drop processed_upload columns idempotently.
+
+    This is the reverse of add_processed_upload_columns. PostgreSQL uses
+    DROP COLUMN IF EXISTS. SQLite inspects the schema and drops each column
+    individually when present; on older SQLite versions (<3.35) that do not
+    support DROP COLUMN, the reverse is skipped.
+    """
+    table_name = _table_name(apps)
+
+    if schema_editor.connection.vendor == 'postgresql':
+        schema_editor.execute(
+            "ALTER TABLE " + table_name + "\n"
+            "DROP COLUMN IF EXISTS processed_upload,\n"
+            "DROP COLUMN IF EXISTS processed_upload_error,\n"
+            "DROP COLUMN IF EXISTS processed_upload_generated_at;"
+        )
+        return
+
+    if schema_editor.connection.vendor != 'sqlite':
+        return
+
+    supports_drop_column = getattr(
+        schema_editor.connection.Database, 'sqlite_version_info', (0, 0, 0)
+    ) >= (3, 35, 0)
+    if not supports_drop_column:
+        return
+
+    existing = _existing_columns(schema_editor, table_name)
+    for column in (
+        'processed_upload',
+        'processed_upload_error',
+        'processed_upload_generated_at',
+    ):
+        if column in existing:
+            schema_editor.execute(
+                "ALTER TABLE " + table_name
+                + " DROP COLUMN " + column + ";"
+            )
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -14,14 +116,9 @@ class Migration(migrations.Migration):
         # partial migration, so make the schema change idempotent.
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
-                    sql="""
-                        ALTER TABLE orders_orderline
-                        ADD COLUMN IF NOT EXISTS processed_upload varchar(100),
-                        ADD COLUMN IF NOT EXISTS processed_upload_error text NOT NULL DEFAULT '',
-                        ADD COLUMN IF NOT EXISTS processed_upload_generated_at timestamp with time zone NULL;
-                    """,
-                    reverse_sql=migrations.RunSQL.noop,
+                migrations.RunPython(
+                    code=add_processed_upload_columns,
+                    reverse_code=remove_processed_upload_columns,
                 ),
             ],
             state_operations=[

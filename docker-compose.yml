@@ -36,14 +36,22 @@ services:
       - PRINTFUL_STORE_ID=${PRINTFUL_STORE_ID:-}
       - PRINTFUL_WEBHOOK_SECRET=${PRINTFUL_WEBHOOK_SECRET:-}
       - PRINTFUL_BASE_URL=${PRINTFUL_BASE_URL:-https://api.printful.com}
+      - PRINTFUL_AUTO_PUSH=${PRINTFUL_AUTO_PUSH:-False}
       - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
       - RESEND_API_KEY=${RESEND_API_KEY:-}
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-orders@recuerdomomentos.com}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_IMAGE_MODEL=${OPENAI_IMAGE_MODEL:-gpt-image-2}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_IMAGE_MODEL=${GEMINI_IMAGE_MODEL:-gemini-2.5-flash-image}
+      - AI_IMAGE_PROVIDER=${AI_IMAGE_PROVIDER:-openai}
+      - AI_IMAGE_PROMPT=${AI_IMAGE_PROMPT:-}
       - ADMIN_EMAIL=${USER}
       - ADMIN_PASSWORD=${PASSWORK}
       - MEDIA_ROOT=/app/media
+      - SITE_URL=${SITE_URL:-https://mugs.app.moonsbow.com}
     ports:
       - "8080:8080"
     depends_on:
@@ -138,6 +146,7 @@ services:
       - PRINTFUL_STORE_ID=${PRINTFUL_STORE_ID:-}
       - PRINTFUL_WEBHOOK_SECRET=${PRINTFUL_WEBHOOK_SECRET:-}
       - PRINTFUL_BASE_URL=${PRINTFUL_BASE_URL:-https://api.printful.com}
+      - PRINTFUL_AUTO_PUSH=${PRINTFUL_AUTO_PUSH:-False}
       - ADMIN_EMAIL=${USER}
       - ADMIN_PASSWORD=${PASSWORK}
     depends_on:

@@ -1,10 +1,11 @@
 import { Link } from '@tanstack/react-router';
-import { Package, ShoppingCart, RefreshCw, Home, Radio } from 'lucide-react';
+import { Package, ShoppingCart, RefreshCw, Home, Radio, TicketPercent } from 'lucide-react';
 
 const nav = [
   { to: '/', label: 'Inicio', icon: Home },
   { to: '/products', label: 'Productos', icon: Package },
   { to: '/orders', label: 'Órdenes', icon: ShoppingCart },
+  { to: '/discounts', label: 'Cupones', icon: TicketPercent },
   { to: '/printful', label: 'Printful', icon: RefreshCw },
   { to: '/printful/webhooks', label: 'Webhooks', icon: Radio },
 ];
