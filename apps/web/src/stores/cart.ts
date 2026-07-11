@@ -1,6 +1,30 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { CartItem } from '../lib/api';
+
+const safeLocalStorage = {
+  getItem: (name: string) => {
+    try {
+      return localStorage.getItem(name);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (name: string, value: string) => {
+    try {
+      localStorage.setItem(name, value);
+    } catch {
+      // ignore quota/corruption errors
+    }
+  },
+  removeItem: (name: string) => {
+    try {
+      localStorage.removeItem(name);
+    } catch {
+      // ignore
+    }
+  },
+};
 
 interface CartState {
   items: CartItem[];
@@ -35,7 +59,9 @@ export const useCart = create<CartState>()(
       updateQuantity: (variantId, quantity) =>
         set({
           items: get().items.map((i) =>
-            i.variantId === variantId ? { ...i, quantity } : i
+            i.variantId === variantId
+              ? { ...i, quantity: Math.max(1, Math.min(99, quantity)) }
+              : i
           ),
         }),
       updateUpload: (variantId, uploadPreview, uploadName) =>
@@ -50,12 +76,9 @@ export const useCart = create<CartState>()(
     }),
     {
       name: 'recuerdo-cart',
+      storage: createJSONStorage(() => safeLocalStorage),
       partialize: (state) => ({
-        items: state.items.map(({ uploadPreview, uploadName, ...rest }) => ({
-          ...rest,
-          uploadPreview,
-          uploadName,
-        })),
+        items: state.items.map(({ uploadPreview, ...rest }) => rest),
       }),
     }
   )
