@@ -1,4 +1,6 @@
 import pytest
+from pytest_django.asserts import assertNumQueries
+
 from apps.discounts.models import DiscountCode
 from apps.orders.models import Order, OrderLine
 from apps.products.models import Collection, Product, ProductVariant
@@ -91,3 +93,30 @@ class TestDiscountCodeAppliesToOrder:
             collection_ids=[str(other_collection.id)],
         )
         assert discount.applies_to_order(self.order) is False
+
+    def test_applies_to_products_query_count(self):
+        discount = DiscountCode.objects.create(
+            code='PRODUCT',
+            discount_type='percentage',
+            value='10',
+            applies_to='products',
+            product_ids=[str(self.product.id)],
+        )
+        with assertNumQueries(1):
+            discount.applies_to_order(self.order)
+
+    def test_applies_to_collections_query_count(self):
+        collection = Collection.objects.create(
+            handle='featured',
+            title='Featured',
+        )
+        collection.products.add(self.product)
+        discount = DiscountCode.objects.create(
+            code='COLLECTION',
+            discount_type='percentage',
+            value='10',
+            applies_to='collections',
+            collection_ids=[str(collection.id)],
+        )
+        with assertNumQueries(2):
+            discount.applies_to_order(self.order)

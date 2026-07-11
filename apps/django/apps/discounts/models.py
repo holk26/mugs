@@ -6,7 +6,7 @@ from django.db import models
 from django.utils import timezone
 
 from apps.orders.models import Order
-from apps.products.models import Product
+from apps.products.models import Collection, Product
 
 
 class DiscountCode(models.Model):
@@ -101,25 +101,28 @@ class DiscountCode(models.Model):
         if self.applies_to == 'all':
             return True
 
+        lines = order.lines.select_related('variant__product').all()
+
         if self.applies_to == 'products':
             product_ids = {str(pid) for pid in self.product_ids}
             return any(
                 line.variant and str(line.variant.product_id) in product_ids
-                for line in order.lines.all()
+                for line in lines
             )
 
         if self.applies_to == 'collections':
-            from apps.products.models import Collection
             collection_ids = {str(cid) for cid in self.collection_ids}
-            for line in order.lines.all():
-                if not line.variant:
-                    continue
-                if Collection.objects.filter(
-                    id__in=list(collection_ids),
-                    products=line.variant.product,
-                ).exists():
-                    return True
-            return False
+            product_ids = {
+                str(line.variant.product_id)
+                for line in lines
+                if line.variant
+            }
+            if not product_ids:
+                return False
+            return Collection.objects.filter(
+                id__in=collection_ids,
+                products__id__in=product_ids,
+            ).exists()
 
         return False
 
