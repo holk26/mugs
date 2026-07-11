@@ -149,7 +149,7 @@ PRINTFUL_WEBHOOK_SECRET = os.environ.get('PRINTFUL_WEBHOOK_SECRET', '')
 PRINTFUL_BASE_URL = os.environ.get('PRINTFUL_BASE_URL', 'https://api.printful.com')
 PRINTFUL_AUTO_PUSH = os.environ.get('PRINTFUL_AUTO_PUSH', 'False').lower() in ('1', 'true', 'yes', 'on')
 
-SITE_URL = os.environ.get("SITE_URL", "https://mugs.app.moonsbow.com")
+SITE_URL = os.environ.get("SITE_URL", "http://localhost:4321")
 
 # Stripe
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
