@@ -4,6 +4,7 @@ import { useCart } from '../stores/cart';
 export default function ClearCart() {
   const clearCart = useCart((s) => s.clearCart);
   useEffect(() => {
+    useCart.persist.clearStorage();
     clearCart();
   }, [clearCart]);
   return null;
