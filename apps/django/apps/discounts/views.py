@@ -141,24 +141,26 @@ def apply_discount(request):
             'order_total': str(order.total),
         })
 
-    is_valid, message = discount.is_valid(
-        order_total=order_total,
-        user=request.user,
-        email=_identifier_from_request(request),
-    )
-    if not is_valid:
-        return Response({'detail': message}, status=status.HTTP_400_BAD_REQUEST)
-
     if not discount.applies_to_order(order):
         return Response(
             {'detail': 'This discount code does not apply to the items in your order.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    discount_amount = discount.calculate_discount(order_total)
     identifier = _identifier_from_request(request)
 
     with transaction.atomic():
+        discount = DiscountCode.objects.select_for_update().get(pk=discount.pk)
+        is_valid, message = discount.is_valid(
+            order_total=order_total,
+            user=request.user,
+            email=identifier,
+        )
+        if not is_valid:
+            return Response({'detail': message}, status=status.HTTP_400_BAD_REQUEST)
+
+        discount_amount = discount.calculate_discount(order_total)
+        _release_discount_reservation(order)
         order.discount_code = discount
         order.discount_amount = discount_amount
         _recalculate_order_total(order)
