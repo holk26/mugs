@@ -147,13 +147,20 @@ def stripe_webhook(request):
                 }
                 order.save(update_fields=['shipping_address'])
 
-        if order.discount_code and not DiscountUsage.objects.filter(order=order, discount_code=order.discount_code).exists():
+        if order.discount_code:
             identifier = str(order.user.id) if order.user else order.customer_email.lower()
-            DiscountUsage.objects.create(
-                discount_code=order.discount_code,
+            usage, created = DiscountUsage.objects.get_or_create(
                 order=order,
-                identifier=identifier,
-                amount_saved=order.discount_amount or 0,
+                discount_code=order.discount_code,
+                defaults={
+                    'identifier': identifier,
+                    'status': DiscountUsage.STATUS_CONFIRMED,
+                    'amount_saved': order.discount_amount or 0,
+                },
             )
+            if not created:
+                usage.status = DiscountUsage.STATUS_CONFIRMED
+                usage.amount_saved = order.discount_amount or 0
+                usage.save(update_fields=['status', 'amount_saved'])
 
     return Response({'status': 'ok'})
