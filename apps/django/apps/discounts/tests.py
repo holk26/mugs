@@ -114,7 +114,7 @@ class TestApplyDiscountView:
         assert response.status_code == 200
         assert self.order.discount_usages.count() == 1
 
-    def test_per_user_usage_limit_respects_email_prefix(self, client):
+    def test_per_user_usage_limit_by_email(self, client):
         self.discount.usage_limit_per_user = 1
         self.discount.save()
 
