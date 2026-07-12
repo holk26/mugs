@@ -214,7 +214,17 @@ AWS_DEFAULT_ACL = 'public-read'
 AWS_QUERYSTRING_AUTH = False
 AWS_S3_VERIFY = os.environ.get('AWS_S3_VERIFY', 'True').lower() in ('true', '1', 'yes')
 
-if AWS_S3_ENDPOINT_URL:
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-else:
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+# Default storage backend. When AWS_S3_ENDPOINT_URL is set, use S3/MinIO;
+# otherwise fall back to the local filesystem for development.
+STORAGES = {
+    'default': {
+        'BACKEND': (
+            'storages.backends.s3boto3.S3Boto3Storage'
+            if AWS_S3_ENDPOINT_URL
+            else 'django.core.files.storage.FileSystemStorage'
+        ),
+    },
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    },
+}
