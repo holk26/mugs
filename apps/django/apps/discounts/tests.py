@@ -1,7 +1,7 @@
 import pytest
 from pytest_django.asserts import assertNumQueries
 
-from apps.discounts.models import DiscountCode
+from apps.discounts.models import DiscountCode, DiscountUsage
 from apps.orders.models import Order, OrderLine
 from apps.products.models import Collection, Product, ProductVariant
 
@@ -158,6 +158,47 @@ class TestApplyDiscountView:
         )
         assert response.status_code == 200
         assert self.order.discount_usages.count() == 0
+
+    def test_apply_discount_releases_previous_reservation(self, client):
+        discount_a = DiscountCode.objects.create(
+            code='CODEA',
+            discount_type='percentage',
+            value='10',
+            applies_to='all',
+            is_active=True,
+        )
+        discount_b = DiscountCode.objects.create(
+            code='CODEB',
+            discount_type='percentage',
+            value='20',
+            applies_to='all',
+            is_active=True,
+        )
+
+        response = client.post(
+            '/api/v1/discounts/apply',
+            {
+                'order_id': str(self.order.id),
+                'code': 'CODEA',
+                'email': 'test@example.com',
+            },
+            content_type='application/json',
+        )
+        assert response.status_code == 200
+        assert DiscountUsage.objects.filter(discount_code=discount_a).count() == 1
+
+        response = client.post(
+            '/api/v1/discounts/apply',
+            {
+                'order_id': str(self.order.id),
+                'code': 'CODEB',
+                'email': 'test@example.com',
+            },
+            content_type='application/json',
+        )
+        assert response.status_code == 200
+        assert DiscountUsage.objects.filter(discount_code=discount_a).count() == 0
+        assert DiscountUsage.objects.filter(discount_code=discount_b).count() == 1
 
 
 @pytest.mark.django_db
