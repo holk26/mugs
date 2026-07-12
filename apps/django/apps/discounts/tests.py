@@ -86,6 +86,79 @@ class TestApplyDiscountView:
         assert response.status_code == 200
         assert response.json()['discount_amount'] == '0.00'
 
+    def test_apply_discount_creates_reserved_usage(self, client):
+        response = client.post(
+            '/api/v1/discounts/apply',
+            {
+                'order_id': str(self.order.id),
+                'code': 'SAVE10',
+                'email': 'test@example.com',
+            },
+            content_type='application/json',
+        )
+        assert response.status_code == 200
+        usage = self.order.discount_usages.get()
+        assert usage.status == 'reserved'
+        assert usage.identifier == 'test@example.com'
+
+    def test_apply_discount_respects_total_usage_limit(self, client):
+        self.discount.usage_limit_total = 1
+        self.discount.save()
+
+        response = client.post(
+            '/api/v1/discounts/apply',
+            {
+                'order_id': str(self.order.id),
+                'code': 'SAVE10',
+                'email': 'test@example.com',
+            },
+            content_type='application/json',
+        )
+        assert response.status_code == 200
+
+        second_order = Order.objects.create(
+            customer_email='other@example.com',
+            total='15.00',
+        )
+        OrderLine.objects.create(
+            order=second_order,
+            variant=self.variant,
+            title='Red Mug',
+            quantity=1,
+            price='15.00',
+        )
+        response = client.post(
+            '/api/v1/discounts/apply',
+            {
+                'order_id': str(second_order.id),
+                'code': 'SAVE10',
+                'email': 'other@example.com',
+            },
+            content_type='application/json',
+        )
+        assert response.status_code == 400
+        assert 'usage limit' in response.json()['detail'].lower()
+
+    def test_remove_discount_deletes_reserved_usage(self, client):
+        client.post(
+            '/api/v1/discounts/apply',
+            {
+                'order_id': str(self.order.id),
+                'code': 'SAVE10',
+                'email': 'test@example.com',
+            },
+            content_type='application/json',
+        )
+        assert self.order.discount_usages.count() == 1
+
+        response = client.post(
+            '/api/v1/discounts/remove',
+            {'order_id': str(self.order.id), 'email': 'test@example.com'},
+            content_type='application/json',
+        )
+        assert response.status_code == 200
+        assert self.order.discount_usages.count() == 0
+
 
 @pytest.mark.django_db
 class TestDiscountCodeAppliesToOrder:
