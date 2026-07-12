@@ -52,6 +52,12 @@ services:
       - ADMIN_PASSWORD=${PASSWORK}
       - MEDIA_ROOT=/app/media
       - SITE_URL=${SITE_URL:-https://mugs.app.moonsbow.com}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-mugs}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-mugs-secret}
+      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME:-mugs-media}
+      - AWS_S3_ENDPOINT_URL=${AWS_S3_ENDPOINT_URL:-http://minio:9000}
+      - AWS_S3_CUSTOM_DOMAIN=${AWS_S3_CUSTOM_DOMAIN:-}
+      - AWS_S3_VERIFY=${AWS_S3_VERIFY:-False}
     ports:
       - "8080:8080"
     depends_on:
@@ -149,6 +155,12 @@ services:
       - PRINTFUL_AUTO_PUSH=${PRINTFUL_AUTO_PUSH:-False}
       - ADMIN_EMAIL=${USER}
       - ADMIN_PASSWORD=${PASSWORK}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-mugs}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-mugs-secret}
+      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME:-mugs-media}
+      - AWS_S3_ENDPOINT_URL=${AWS_S3_ENDPOINT_URL:-http://minio:9000}
+      - AWS_S3_CUSTOM_DOMAIN=${AWS_S3_CUSTOM_DOMAIN:-}
+      - AWS_S3_VERIFY=${AWS_S3_VERIFY:-False}
     depends_on:
       - db
       - redis
@@ -156,9 +168,53 @@ services:
       - dokploy-network
     restart: unless-stopped
 
+  minio:
+    image: minio/minio:latest
+    container_name: mugs-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-mugs}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-mugs-secret}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - dokploy-network
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
+      - "traefik.http.routers.mugs-minio.rule=Host(`${MINIO_DOMAIN:-minio.app.moonsbow.com}`)"
+      - "traefik.http.routers.mugs-minio.entrypoints=websecure"
+      - "traefik.http.routers.mugs-minio.tls.certResolver=letsencrypt"
+      - "traefik.http.routers.mugs-minio.service=mugs-minio-service"
+      - "traefik.http.services.mugs-minio-service.loadbalancer.server.port=9000"
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: mugs-minio-init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+        echo 'Waiting for MinIO...';
+        sleep 5;
+        mc alias set local http://minio:9000 $${MINIO_ROOT_USER:-mugs} $${MINIO_ROOT_PASSWORD:-mugs-secret};
+        mc mb local/$${AWS_STORAGE_BUCKET_NAME:-mugs-media} --ignore-existing;
+        mc anonymous set download local/$${AWS_STORAGE_BUCKET_NAME:-mugs-media};
+        echo 'MinIO bucket ready';
+      "
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-mugs}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-mugs-secret}
+      AWS_STORAGE_BUCKET_NAME: ${AWS_STORAGE_BUCKET_NAME:-mugs-media}
+    networks:
+      - dokploy-network
+    restart: on-failure
+
 volumes:
   postgres-data:
   media-data:
+  minio-data:
 
 networks:
   dokploy-network:
