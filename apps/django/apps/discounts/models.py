@@ -155,3 +155,12 @@ class DiscountUsage(models.Model):
                 name='unique_order_discount_code',
             ),
         ]
+
+    @staticmethod
+    def normalize_identifier(user=None, email: str = '') -> str:
+        if user and user.is_authenticated:
+            return f'user:{user.id}'
+        email = (email or '').strip().lower()
+        if email:
+            return f'email:{email}'
+        return ''

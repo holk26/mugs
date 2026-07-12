@@ -46,12 +46,10 @@ def _identifier_from_request(request):
 
 def _discount_identifier(request):
     """Return a normalized identifier for DiscountUsage tracking."""
-    if request.user.is_authenticated:
-        return f'user:{request.user.id}'
-    email = request.data.get('email', '').strip().lower()
-    if email:
-        return f'email:{email}'
-    return ''
+    return DiscountUsage.normalize_identifier(
+        user=request.user,
+        email=request.data.get('email', ''),
+    )
 
 
 def _client_identifier(request) -> str:
