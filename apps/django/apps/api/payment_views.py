@@ -1,5 +1,6 @@
 import stripe
 from django.conf import settings
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -127,40 +128,41 @@ def stripe_webhook(request):
         except Order.DoesNotExist:
             return Response({'detail': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        if order.status == 'pending':
-            order.status = 'paid'
-            order.save(update_fields=['status'])
+        with transaction.atomic():
+            if order.status == 'pending':
+                order.status = 'paid'
+                order.save(update_fields=['status'])
 
-        if event['type'] == 'checkout.session.completed':
-            session_obj = event['data']['object']
-            shipping = session_obj.get('shipping_details') or session_obj.get('customer_details', {}).get('shipping', {})
-            address = shipping.get('address', {})
-            if address:
-                order.shipping_address = {
-                    'name': shipping.get('name', order.customer_name),
-                    'line1': address.get('line1', ''),
-                    'line2': address.get('line2', ''),
-                    'city': address.get('city', ''),
-                    'state': address.get('state', ''),
-                    'postal_code': address.get('postal_code', ''),
-                    'country': address.get('country', ''),
-                }
-                order.save(update_fields=['shipping_address'])
+            if event['type'] == 'checkout.session.completed':
+                session_obj = event['data']['object']
+                shipping = session_obj.get('shipping_details') or session_obj.get('customer_details', {}).get('shipping', {})
+                address = shipping.get('address', {})
+                if address:
+                    order.shipping_address = {
+                        'name': shipping.get('name', order.customer_name),
+                        'line1': address.get('line1', ''),
+                        'line2': address.get('line2', ''),
+                        'city': address.get('city', ''),
+                        'state': address.get('state', ''),
+                        'postal_code': address.get('postal_code', ''),
+                        'country': address.get('country', ''),
+                    }
+                    order.save(update_fields=['shipping_address'])
 
-        if order.discount_code:
-            identifier = str(order.user.id) if order.user else order.customer_email.lower()
-            usage, created = DiscountUsage.objects.get_or_create(
-                order=order,
-                discount_code=order.discount_code,
-                defaults={
-                    'identifier': identifier,
-                    'status': DiscountUsage.STATUS_CONFIRMED,
-                    'amount_saved': order.discount_amount or 0,
-                },
-            )
-            if not created:
-                usage.status = DiscountUsage.STATUS_CONFIRMED
-                usage.amount_saved = order.discount_amount or 0
-                usage.save(update_fields=['status', 'amount_saved'])
+            if order.discount_code:
+                identifier = str(order.user.id) if order.user else order.customer_email.lower()
+                usage, created = DiscountUsage.objects.get_or_create(
+                    order=order,
+                    discount_code=order.discount_code,
+                    defaults={
+                        'identifier': identifier,
+                        'status': DiscountUsage.STATUS_CONFIRMED,
+                        'amount_saved': order.discount_amount or 0,
+                    },
+                )
+                if not created:
+                    usage.status = DiscountUsage.STATUS_CONFIRMED
+                    usage.amount_saved = order.discount_amount or 0
+                    usage.save(update_fields=['status', 'amount_saved'])
 
     return Response({'status': 'ok'})
