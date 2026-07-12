@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'apps.discounts',
     'apps.core',
     'anymail',
+    'storages',
 ]
 
 MIDDLEWARE = [
@@ -173,7 +174,7 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_IMAGE_MODEL = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
 
 # Shared AI image cleanup config
-AI_IMAGE_PROVIDER = os.environ.get("AI_IMAGE_PROVIDER", "openai")
+AI_IMAGE_PROVIDER = os.environ.get("AI_IMAGE_PROVIDER", "gemini")
 AI_IMAGE_PROMPT = os.environ.get(
     "AI_IMAGE_PROMPT",
     "Clean up this image for printing on a white ceramic mug. Remove the background, "
@@ -201,3 +202,19 @@ CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', 'False').l
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+
+# S3 / MinIO storage
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', 'mugs')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', 'mugs-secret')
+AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME', 'mugs-media')
+AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL', '')
+AWS_S3_CUSTOM_DOMAIN = os.environ.get('AWS_S3_CUSTOM_DOMAIN', '')
+AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
+AWS_DEFAULT_ACL = 'public-read'
+AWS_QUERYSTRING_AUTH = False
+AWS_S3_VERIFY = os.environ.get('AWS_S3_VERIFY', 'True').lower() in ('true', '1', 'yes')
+
+if AWS_S3_ENDPOINT_URL:
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+else:
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
