@@ -150,6 +150,10 @@ def apply_discount(request):
     identifier = _identifier_from_request(request)
 
     with transaction.atomic():
+        order = Order.objects.select_for_update().get(id=order.id)
+        if not _can_manage_order(order, request):
+            return Response({'detail': 'Order not found or cannot be modified.'}, status=status.HTTP_404_NOT_FOUND)
+
         discount = DiscountCode.objects.select_for_update().get(pk=discount.pk)
         is_valid, message = discount.is_valid(
             order_total=order_total,
@@ -194,6 +198,10 @@ def remove_discount(request):
         return Response({'detail': 'Order not found or cannot be modified.'}, status=status.HTTP_404_NOT_FOUND)
 
     with transaction.atomic():
+        order = Order.objects.select_for_update().get(id=order.id)
+        if not _can_manage_order(order, request):
+            return Response({'detail': 'Order not found or cannot be modified.'}, status=status.HTTP_404_NOT_FOUND)
+
         _release_discount_reservation(order)
         order.discount_code = None
         order.discount_amount = Decimal('0')
