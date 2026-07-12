@@ -72,7 +72,12 @@ class DiscountCode(models.Model):
         if self.expires_at and now > self.expires_at:
             return False, 'Discount code has expired'
 
-        if self.usage_limit_total is not None and self.usage_count >= self.usage_limit_total:
+        counted_usages = self.usages.filter(
+            status__in=(DiscountUsage.STATUS_RESERVED, DiscountUsage.STATUS_CONFIRMED)
+        )
+        usage_count = counted_usages.count()
+
+        if self.usage_limit_total is not None and usage_count >= self.usage_limit_total:
             return False, 'Discount code usage limit reached'
 
         if self.min_order_amount is not None and order_total < self.min_order_amount:
@@ -81,7 +86,7 @@ class DiscountCode(models.Model):
         if self.usage_limit_per_user is not None and self.usage_limit_per_user > 0:
             identifier = str(user.id) if user and user.is_authenticated else email
             if identifier:
-                user_usage = self.usages.filter(identifier=identifier).count()
+                user_usage = counted_usages.filter(identifier=identifier).count()
                 if user_usage >= self.usage_limit_per_user:
                     return False, 'You have already used this discount code the maximum number of times'
 
@@ -128,11 +133,19 @@ class DiscountCode(models.Model):
 
 
 class DiscountUsage(models.Model):
+    STATUS_RESERVED = 'reserved'
+    STATUS_CONFIRMED = 'confirmed'
+    STATUS_CHOICES = [
+        (STATUS_RESERVED, 'Reserved'),
+        (STATUS_CONFIRMED, 'Confirmed'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     discount_code = models.ForeignKey(DiscountCode, related_name='usages', on_delete=models.CASCADE)
     order = models.ForeignKey(Order, related_name='discount_usages', on_delete=models.CASCADE, null=True, blank=True)
     identifier = models.CharField(max_length=255, blank=True, db_index=True)
     amount_saved = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_RESERVED)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
