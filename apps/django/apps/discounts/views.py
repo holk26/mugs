@@ -44,6 +44,16 @@ def _identifier_from_request(request):
     return request.data.get('email', '').strip().lower()
 
 
+def _discount_identifier(request):
+    """Return a normalized identifier for DiscountUsage tracking."""
+    if request.user.is_authenticated:
+        return f'user:{request.user.id}'
+    email = request.data.get('email', '').strip().lower()
+    if email:
+        return f'email:{email}'
+    return ''
+
+
 def _client_identifier(request) -> str:
     """Return a stable identifier for rate limiting and ownership checks."""
     if request.user.is_authenticated:
@@ -147,7 +157,7 @@ def apply_discount(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    identifier = _identifier_from_request(request)
+    discount_identifier = _discount_identifier(request)
 
     with transaction.atomic():
         order = Order.objects.select_for_update().get(id=order.id)
@@ -157,8 +167,7 @@ def apply_discount(request):
         discount = DiscountCode.objects.select_for_update().get(pk=discount.pk)
         is_valid, message = discount.is_valid(
             order_total=order_total,
-            user=request.user,
-            email=identifier,
+            identifier=discount_identifier,
         )
         if not is_valid:
             return Response({'detail': message}, status=status.HTTP_400_BAD_REQUEST)
@@ -168,7 +177,7 @@ def apply_discount(request):
         order.discount_code = discount
         order.discount_amount = discount_amount
         _recalculate_order_total(order)
-        _reserve_discount(order, discount, identifier)
+        _reserve_discount(order, discount, discount_identifier)
 
     return Response({
         'discount_code': discount.code,

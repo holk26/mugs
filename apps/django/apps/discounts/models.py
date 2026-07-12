@@ -62,7 +62,7 @@ class DiscountCode(models.Model):
     def usage_count(self):
         return self.usages.count()
 
-    def is_valid(self, order_total: Decimal, user=None, email: str = '') -> tuple[bool, str]:
+    def is_valid(self, order_total: Decimal, identifier: str = '') -> tuple[bool, str]:
         if not self.is_active:
             return False, 'Discount code is inactive'
 
@@ -84,7 +84,6 @@ class DiscountCode(models.Model):
             return False, f'Minimum order amount is {self.min_order_amount}'
 
         if self.usage_limit_per_user is not None and self.usage_limit_per_user > 0:
-            identifier = str(user.id) if user and user.is_authenticated else email
             if identifier:
                 user_usage = counted_usages.filter(identifier=identifier).count()
                 if user_usage >= self.usage_limit_per_user:

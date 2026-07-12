@@ -42,7 +42,7 @@ class TestStripeWebhookDiscountConfirmation:
         DiscountUsage.objects.create(
             order=self.order,
             discount_code=self.discount,
-            identifier='test@example.com',
+            identifier='email:test@example.com',
             status=DiscountUsage.STATUS_RESERVED,
         )
         settings.STRIPE_WEBHOOK_SECRET = 'whsec_test'
@@ -89,3 +89,41 @@ class TestStripeWebhookDiscountConfirmation:
         usage = DiscountUsage.objects.get(order=self.order, discount_code=self.discount)
         assert usage.status == DiscountUsage.STATUS_CONFIRMED
         assert usage.amount_saved == Decimal('1.50')
+
+    @patch('apps.api.payment_views.stripe.Webhook.construct_event')
+    def test_webhook_idempotent(self, mock_construct, client, settings):
+        mock_construct.return_value = {
+            'type': 'checkout.session.completed',
+            'data': {
+                'object': {
+                    'metadata': {'order_id': str(self.order.id)},
+                    'shipping_details': {
+                        'name': 'Test User',
+                        'address': {
+                            'line1': '123 Main',
+                            'city': 'City',
+                            'state': 'ST',
+                            'postal_code': '12345',
+                            'country': 'US',
+                        },
+                    },
+                },
+            },
+        }
+        settings.STRIPE_WEBHOOK_SECRET = 'whsec_test'
+        response = client.post(
+            '/api/v1/payments/stripe/webhook/',
+            '',
+            content_type='application/json',
+            HTTP_STRIPE_SIGNATURE='sig',
+        )
+        assert response.status_code == 200
+
+        response = client.post(
+            '/api/v1/payments/stripe/webhook/',
+            '',
+            content_type='application/json',
+            HTTP_STRIPE_SIGNATURE='sig',
+        )
+        assert response.status_code == 200
+        assert DiscountUsage.objects.filter(order=self.order, discount_code=self.discount).count() == 1

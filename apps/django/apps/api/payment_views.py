@@ -150,7 +150,12 @@ def stripe_webhook(request):
                     order.save(update_fields=['shipping_address'])
 
             if order.discount_code:
-                identifier = str(order.user.id) if order.user else order.customer_email.lower()
+                if order.user:
+                    identifier = f'user:{order.user.id}'
+                elif order.customer_email:
+                    identifier = f'email:{order.customer_email.lower()}'
+                else:
+                    identifier = ''
                 usage, created = DiscountUsage.objects.get_or_create(
                     order=order,
                     discount_code=order.discount_code,

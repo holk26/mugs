@@ -99,7 +99,58 @@ class TestApplyDiscountView:
         assert response.status_code == 200
         usage = self.order.discount_usages.get()
         assert usage.status == 'reserved'
-        assert usage.identifier == 'test@example.com'
+        assert usage.identifier == 'email:test@example.com'
+
+    def test_apply_discount_idempotent(self, client):
+        payload = {
+            'order_id': str(self.order.id),
+            'code': 'SAVE10',
+            'email': 'test@example.com',
+        }
+        response = client.post('/api/v1/discounts/apply', payload, content_type='application/json')
+        assert response.status_code == 200
+
+        response = client.post('/api/v1/discounts/apply', payload, content_type='application/json')
+        assert response.status_code == 200
+        assert self.order.discount_usages.count() == 1
+
+    def test_per_user_usage_limit_respects_email_prefix(self, client):
+        self.discount.usage_limit_per_user = 1
+        self.discount.save()
+
+        response = client.post(
+            '/api/v1/discounts/apply',
+            {
+                'order_id': str(self.order.id),
+                'code': 'SAVE10',
+                'email': 'test@example.com',
+            },
+            content_type='application/json',
+        )
+        assert response.status_code == 200
+
+        second_order = Order.objects.create(
+            customer_email='test@example.com',
+            total='15.00',
+        )
+        OrderLine.objects.create(
+            order=second_order,
+            variant=self.variant,
+            title='Red Mug',
+            quantity=1,
+            price='15.00',
+        )
+        response = client.post(
+            '/api/v1/discounts/apply',
+            {
+                'order_id': str(second_order.id),
+                'code': 'SAVE10',
+                'email': 'test@example.com',
+            },
+            content_type='application/json',
+        )
+        assert response.status_code == 400
+        assert 'maximum number of times' in response.json()['detail'].lower()
 
     def test_apply_discount_respects_total_usage_limit(self, client):
         self.discount.usage_limit_total = 1
