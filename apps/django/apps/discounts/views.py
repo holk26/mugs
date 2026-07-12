@@ -138,17 +138,6 @@ def apply_discount(request):
     except DiscountCode.DoesNotExist:
         return Response({'detail': 'Invalid discount code.'}, status=status.HTTP_404_NOT_FOUND)
 
-    order_total = sum(line.price * line.quantity for line in order.lines.all())
-
-    if order.discount_code_id == discount.id and order.discount_amount > 0:
-        return Response({
-            'discount_code': discount.code,
-            'discount_type': discount.discount_type,
-            'value': str(discount.value),
-            'discount_amount': str(order.discount_amount),
-            'order_total': str(order.total),
-        })
-
     if not discount.applies_to_order(order):
         return Response(
             {'detail': 'This discount code does not apply to the items in your order.'},
@@ -161,6 +150,8 @@ def apply_discount(request):
         order = Order.objects.select_for_update().get(id=order.id)
         if not _can_manage_order(order, request):
             return Response({'detail': 'Order not found or cannot be modified.'}, status=status.HTTP_404_NOT_FOUND)
+
+        order_total = sum(line.price * line.quantity for line in order.lines.all())
 
         discount = DiscountCode.objects.select_for_update().get(pk=discount.pk)
         is_valid, message = discount.is_valid(
