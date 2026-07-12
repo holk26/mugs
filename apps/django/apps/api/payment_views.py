@@ -1,6 +1,7 @@
 import stripe
+from decimal import Decimal
 from django.conf import settings
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -8,7 +9,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from apps.payments.models import PaymentGateway
 from apps.orders.models import Order
-from apps.discounts.models import DiscountUsage
+from apps.discounts.models import DiscountCode, DiscountUsage
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -150,24 +151,29 @@ def stripe_webhook(request):
                     order.save(update_fields=['shipping_address'])
 
             if order.discount_code:
-                if order.user:
-                    identifier = f'user:{order.user.id}'
-                elif order.customer_email:
-                    identifier = f'email:{order.customer_email.lower()}'
-                else:
-                    identifier = ''
-                usage, created = DiscountUsage.objects.get_or_create(
-                    order=order,
-                    discount_code=order.discount_code,
-                    defaults={
-                        'identifier': identifier,
-                        'status': DiscountUsage.STATUS_CONFIRMED,
-                        'amount_saved': order.discount_amount or 0,
-                    },
+                discount_code = DiscountCode.objects.select_for_update().get(pk=order.discount_code.pk)
+                identifier = DiscountUsage.normalize_identifier(
+                    user=order.user,
+                    email=order.customer_email,
                 )
-                if not created:
+                try:
+                    usage, created = DiscountUsage.objects.get_or_create(
+                        order=order,
+                        discount_code=discount_code,
+                        defaults={
+                            'identifier': identifier,
+                            'status': DiscountUsage.STATUS_CONFIRMED,
+                            'amount_saved': order.discount_amount or Decimal('0'),
+                        },
+                    )
+                    if not created:
+                        usage.status = DiscountUsage.STATUS_CONFIRMED
+                        usage.amount_saved = order.discount_amount or Decimal('0')
+                        usage.save(update_fields=['status', 'amount_saved'])
+                except IntegrityError:
+                    usage = DiscountUsage.objects.get(order=order, discount_code=discount_code)
                     usage.status = DiscountUsage.STATUS_CONFIRMED
-                    usage.amount_saved = order.discount_amount or 0
+                    usage.amount_saved = order.discount_amount or Decimal('0')
                     usage.save(update_fields=['status', 'amount_saved'])
 
     return Response({'status': 'ok'})
