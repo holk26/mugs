@@ -150,3 +150,9 @@ class DiscountUsage(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['order', 'discount_code'],
+                name='unique_order_discount_code',
+            ),
+        ]
