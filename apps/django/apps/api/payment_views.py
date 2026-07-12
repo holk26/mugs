@@ -123,12 +123,12 @@ def stripe_webhook(request):
         order_id = event['data']['object'].get('metadata', {}).get('order_id')
 
     if order_id:
-        try:
-            order = Order.objects.get(id=order_id)
-        except Order.DoesNotExist:
-            return Response({'detail': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
-
         with transaction.atomic():
+            try:
+                order = Order.objects.select_for_update().get(id=order_id)
+            except Order.DoesNotExist:
+                return Response({'detail': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+
             if order.status == 'pending':
                 order.status = 'paid'
                 order.save(update_fields=['status'])
