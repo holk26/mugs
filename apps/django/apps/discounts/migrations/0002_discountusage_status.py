@@ -3,6 +3,11 @@
 from django.db import migrations, models
 
 
+def backfill_confirmed(apps, schema_editor):
+    DiscountUsage = apps.get_model('discounts', 'DiscountUsage')
+    DiscountUsage.objects.filter(status='reserved').update(status='confirmed')
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -19,4 +24,5 @@ class Migration(migrations.Migration):
                 max_length=20,
             ),
         ),
+        migrations.RunPython(backfill_confirmed, migrations.RunPython.noop),
     ]
