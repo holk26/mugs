@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.core.cache import cache
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -75,6 +75,10 @@ def _can_manage_order(order: Order, request) -> bool:
     if order.user_id and request.user.is_authenticated:
         return order.user_id == request.user.id
 
+    if request.user.is_authenticated and not order.user_id:
+        if request.user.email and order.customer_email and request.user.email.lower() == order.customer_email.lower():
+            return True
+
     identifier = _identifier_from_request(request)
     if identifier and order.customer_email and identifier == order.customer_email.lower():
         return True
@@ -91,14 +95,18 @@ def _recalculate_order_total(order):
 
 
 def _reserve_discount(order, discount, identifier):
-    usage, created = DiscountUsage.objects.get_or_create(
-        order=order,
-        discount_code=discount,
-        defaults={
-            'identifier': identifier,
-            'status': DiscountUsage.STATUS_RESERVED,
-        },
-    )
+    try:
+        usage, created = DiscountUsage.objects.get_or_create(
+            order=order,
+            discount_code=discount,
+            defaults={
+                'identifier': identifier,
+                'status': DiscountUsage.STATUS_RESERVED,
+            },
+        )
+    except IntegrityError:
+        usage = DiscountUsage.objects.get(order=order, discount_code=discount)
+        created = False
     if not created and usage.status != DiscountUsage.STATUS_RESERVED:
         usage.status = DiscountUsage.STATUS_RESERVED
         usage.identifier = identifier

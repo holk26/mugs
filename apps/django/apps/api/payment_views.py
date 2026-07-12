@@ -37,10 +37,19 @@ def create_checkout_session(request):
     success_url = f'{site_url}/thanks/?order={order.id}&session_id={{CHECKOUT_SESSION_ID}}'
     cancel_url = f'{site_url}/checkout/?order={order.id}&canceled=1'
 
+    with transaction.atomic():
+        order = Order.objects.select_for_update().get(id=order.id)
+        if order.status != 'pending':
+            return Response({'detail': 'Order is not pending.'}, status=status.HTTP_400_BAD_REQUEST)
+        subtotal = sum(line.price * line.quantity for line in order.lines.all())
+        discount_code = order.discount_code
+        discount_amount = order.discount_amount
+        currency = order.currency
+
     line_items = [
         {
             'price_data': {
-                'currency': order.currency.lower(),
+                'currency': currency.lower(),
                 'unit_amount': int(line.price * line.quantity * 100),
                 'product_data': {
                     'name': line.title,
@@ -55,7 +64,7 @@ def create_checkout_session(request):
         line_items = [
             {
                 'price_data': {
-                    'currency': order.currency.lower(),
+                    'currency': currency.lower(),
                     'unit_amount': int(order.total * 100),
                     'product_data': {
                         'name': 'Order total',
@@ -77,14 +86,13 @@ def create_checkout_session(request):
         },
     }
 
-    subtotal = sum(line.price * line.quantity for line in order.lines.all())
-    if order.discount_code and order.discount_amount and order.discount_amount > 0 and order.discount_amount <= subtotal:
+    if discount_code and discount_amount and discount_amount > 0 and discount_amount <= subtotal:
         try:
             coupon = stripe.Coupon.create(
-                amount_off=int(order.discount_amount * 100),
-                currency=order.currency.lower(),
+                amount_off=int(discount_amount * 100),
+                currency=currency.lower(),
                 duration='once',
-                name=order.discount_code.code,
+                name=discount_code.code,
             )
             session_kwargs['discounts'] = [{'coupon': coupon.id}]
         except stripe.error.StripeError as e:
