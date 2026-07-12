@@ -8,7 +8,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from apps.discounts.models import DiscountCode
+from apps.discounts.models import DiscountCode, DiscountUsage
 from apps.orders.models import Order
 
 
@@ -82,6 +82,29 @@ def _recalculate_order_total(order):
     order.save(update_fields=['total', 'discount_amount', 'discount_code'])
 
 
+def _reserve_discount(order, discount, identifier):
+    usage, created = DiscountUsage.objects.get_or_create(
+        order=order,
+        discount_code=discount,
+        defaults={
+            'identifier': identifier,
+            'status': DiscountUsage.STATUS_RESERVED,
+        },
+    )
+    if not created and usage.status != DiscountUsage.STATUS_RESERVED:
+        usage.status = DiscountUsage.STATUS_RESERVED
+        usage.identifier = identifier
+        usage.save(update_fields=['status', 'identifier'])
+    return usage
+
+
+def _release_discount_reservation(order):
+    DiscountUsage.objects.filter(
+        order=order,
+        status=DiscountUsage.STATUS_RESERVED,
+    ).delete()
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def apply_discount(request):
@@ -133,11 +156,13 @@ def apply_discount(request):
         )
 
     discount_amount = discount.calculate_discount(order_total)
+    identifier = _identifier_from_request(request)
 
     with transaction.atomic():
         order.discount_code = discount
         order.discount_amount = discount_amount
         _recalculate_order_total(order)
+        _reserve_discount(order, discount, identifier)
 
     return Response({
         'discount_code': discount.code,
@@ -166,9 +191,11 @@ def remove_discount(request):
     if not _can_manage_order(order, request):
         return Response({'detail': 'Order not found or cannot be modified.'}, status=status.HTTP_404_NOT_FOUND)
 
-    order.discount_code = None
-    order.discount_amount = Decimal('0')
-    _recalculate_order_total(order)
+    with transaction.atomic():
+        _release_discount_reservation(order)
+        order.discount_code = None
+        order.discount_amount = Decimal('0')
+        _recalculate_order_total(order)
 
     return Response({
         'discount_code': None,
