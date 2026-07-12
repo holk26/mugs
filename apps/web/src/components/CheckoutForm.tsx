@@ -62,7 +62,7 @@ export default function CheckoutForm() {
     setCouponLoading(true);
     setError('');
     try {
-      const result = await applyDiscount(orderId, couponCode.trim());
+      const result = await applyDiscount(orderId, couponCode.trim(), email);
       setDiscount(result);
       setCouponCode('');
     } catch (err) {
@@ -78,7 +78,7 @@ export default function CheckoutForm() {
     setCouponLoading(true);
     setError('');
     try {
-      await removeDiscount(orderId);
+      await removeDiscount(orderId, email);
       setDiscount(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not remove coupon');

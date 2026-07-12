@@ -64,17 +64,21 @@ export interface DiscountResult {
   order_total: string;
 }
 
-export async function applyDiscount(orderId: string, code: string): Promise<DiscountResult> {
+export async function applyDiscount(
+  orderId: string,
+  code: string,
+  email: string
+): Promise<DiscountResult> {
   return fetchJson('/api/v1/discounts/apply', {
     method: 'POST',
-    body: JSON.stringify({ order_id: orderId, code }),
+    body: JSON.stringify({ order_id: orderId, code, email }),
   });
 }
 
-export async function removeDiscount(orderId: string): Promise<DiscountResult> {
+export async function removeDiscount(orderId: string, email: string): Promise<DiscountResult> {
   return fetchJson('/api/v1/discounts/remove', {
     method: 'POST',
-    body: JSON.stringify({ order_id: orderId }),
+    body: JSON.stringify({ order_id: orderId, email }),
   });
 }
 

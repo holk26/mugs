@@ -7,6 +7,87 @@ from apps.products.models import Collection, Product, ProductVariant
 
 
 @pytest.mark.django_db
+class TestApplyDiscountView:
+    def setup_method(self):
+        self.product = Product.objects.create(
+            handle='mug',
+            title='Mug',
+            price='15.00',
+        )
+        self.variant = ProductVariant.objects.create(
+            product=self.product,
+            title='Red',
+            price='15.00',
+        )
+        self.order = Order.objects.create(
+            customer_email='test@example.com',
+            total='15.00',
+        )
+        OrderLine.objects.create(
+            order=self.order,
+            variant=self.variant,
+            title='Red Mug',
+            quantity=1,
+            price='15.00',
+        )
+        self.discount = DiscountCode.objects.create(
+            code='SAVE10',
+            discount_type='percentage',
+            value='10',
+            applies_to='all',
+            is_active=True,
+        )
+
+    def test_apply_discount_without_email_returns_404(self, client):
+        response = client.post(
+            '/api/v1/discounts/apply',
+            {'order_id': str(self.order.id), 'code': 'SAVE10'},
+            content_type='application/json',
+        )
+        assert response.status_code == 404
+        assert 'cannot be modified' in response.json()['detail']
+
+    def test_apply_discount_with_matching_email_succeeds(self, client):
+        response = client.post(
+            '/api/v1/discounts/apply',
+            {
+                'order_id': str(self.order.id),
+                'code': 'SAVE10',
+                'email': 'test@example.com',
+            },
+            content_type='application/json',
+        )
+        assert response.status_code == 200
+        assert response.json()['discount_code'] == 'SAVE10'
+        assert response.json()['discount_amount'] == '1.5000'
+
+    def test_apply_discount_with_wrong_email_returns_404(self, client):
+        response = client.post(
+            '/api/v1/discounts/apply',
+            {
+                'order_id': str(self.order.id),
+                'code': 'SAVE10',
+                'email': 'other@example.com',
+            },
+            content_type='application/json',
+        )
+        assert response.status_code == 404
+
+    def test_remove_discount_with_matching_email_succeeds(self, client):
+        self.order.discount_code = self.discount
+        self.order.discount_amount = 1.50
+        self.order.save()
+
+        response = client.post(
+            '/api/v1/discounts/remove',
+            {'order_id': str(self.order.id), 'email': 'test@example.com'},
+            content_type='application/json',
+        )
+        assert response.status_code == 200
+        assert response.json()['discount_amount'] == '0.00'
+
+
+@pytest.mark.django_db
 class TestDiscountCodeAppliesToOrder:
     def setup_method(self):
         self.product = Product.objects.create(
