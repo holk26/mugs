@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e
 
-mkdir -p "${MEDIA_ROOT:-/app/media}"
+if [ -z "$AWS_S3_ENDPOINT_URL" ]; then
+    mkdir -p "${MEDIA_ROOT:-/app/media}"
+fi
 
 python manage.py collectstatic --noinput
 python manage.py migrate --noinput
