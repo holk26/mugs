@@ -31,7 +31,7 @@ function resolveFileUrl(file: string): string {
 function OrderDetailPage() {
   const { id } = Route.useParams();
   const queryClient = useQueryClient();
-  const [provider, setProvider] = useState<'openai' | 'gemini'>('openai');
+  const [provider, setProvider] = useState<'openai' | 'gemini'>('gemini');
   const { data, isLoading } = useQuery({
     queryKey: ['order', id],
     queryFn: () => getOrder(id),
