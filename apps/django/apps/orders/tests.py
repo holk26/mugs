@@ -1,11 +1,14 @@
 import os
 import pytest
 from io import BytesIO
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+from celery.exceptions import MaxRetriesExceededError
 from django.urls import reverse
 from django.test import override_settings
 from rest_framework.test import APIClient
 from apps.orders.models import Order, OrderLine
+from apps.orders.tasks import process_order_images
+from apps.orders.ai_cleanup import ImageCleanupError
 from apps.products.models import Product, ProductVariant
 from apps.users.models import User
 
@@ -111,3 +114,42 @@ def test_paid_order_does_not_retrigger_task():
         order.customer_name = 'Updated'
         order.save()
         mock_task.delay.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_process_order_images_success():
+    product = Product.objects.create(handle='mug', title='Mug', price='15.00')
+    variant = ProductVariant.objects.create(product=product, title='Red', price='15.00')
+    order = Order.objects.create(customer_email='test@example.com', total='15.00')
+    line = OrderLine.objects.create(order=order, variant=variant, title='Red Mug', quantity=1, price='15.00')
+    line.customer_upload = 'drawings/test.png'
+    line.save(update_fields=['customer_upload'])
+
+    with patch('apps.orders.tasks.generate_cleaned_upload') as mock_clean:
+        result = process_order_images.run(order.id)
+        mock_clean.assert_called_once_with(line, provider='gemini')
+        assert result['results'][0]['status'] == 'processed'
+
+
+@pytest.mark.django_db
+def test_process_order_images_per_line_error_then_retry():
+    product = Product.objects.create(handle='mug', title='Mug', price='15.00')
+    variant = ProductVariant.objects.create(product=product, title='Red', price='15.00')
+    order = Order.objects.create(customer_email='test@example.com', total='15.00')
+    line = OrderLine.objects.create(order=order, variant=variant, title='Red Mug', quantity=1, price='15.00')
+    line.customer_upload = 'drawings/test.png'
+    line.save(update_fields=['customer_upload'])
+
+    task = process_order_images
+    with patch.object(task, 'retry', side_effect=ImageCleanupError('retry')) as mock_retry:
+        with patch('apps.orders.tasks.generate_cleaned_upload', side_effect=ImageCleanupError('AI failed')):
+            with pytest.raises(ImageCleanupError):
+                task.run(order.id)
+    line.refresh_from_db()
+    assert 'AI failed' in line.processed_upload_error
+
+
+@pytest.mark.django_db
+def test_process_order_images_order_not_found():
+    result = process_order_images.run('00000000-0000-0000-0000-000000000000')
+    assert result == {'error': 'Order not found'}
