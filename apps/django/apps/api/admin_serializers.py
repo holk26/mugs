@@ -98,6 +98,7 @@ class AdminOrderSerializer(serializers.ModelSerializer):
     lines = AdminOrderLineSerializer(many=True, read_only=True)
     raw_upload = serializers.SerializerMethodField()
     processed_upload = serializers.SerializerMethodField()
+    processed_upload_error = serializers.SerializerMethodField()
     discount_code = serializers.SlugRelatedField(read_only=True, slug_field='code')
 
     class Meta:
@@ -105,7 +106,7 @@ class AdminOrderSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'status', 'customer_email', 'customer_name',
             'total', 'currency', 'shipping_address', 'raw_upload', 'processed_upload',
-            'discount_code', 'discount_amount',
+            'processed_upload_error', 'discount_code', 'discount_amount',
             'lines', 'printful_order_id', 'printful_status', 'created_at', 'updated_at'
         ]
         read_only_fields = ['total', 'printful_order_id', 'printful_status']
@@ -120,6 +121,12 @@ class AdminOrderSerializer(serializers.ModelSerializer):
         for line in order.lines.all():
             if line.processed_upload:
                 return _upload_representation(line.processed_upload)
+        return None
+
+    def get_processed_upload_error(self, order: Order):
+        for line in order.lines.all():
+            if line.processed_upload_error:
+                return line.processed_upload_error
         return None
 
 

@@ -38,6 +38,7 @@ export interface Order {
   shipping_address?: ShippingAddress | null;
   raw_upload?: UploadFile | null;
   processed_upload?: UploadFile | null;
+  processed_upload_error?: string | null;
   lines?: OrderLine[];
   printful_order_id?: string;
   printful_status?: string;

@@ -169,32 +169,50 @@ function OrderDetailPage() {
             )}
           </div>
           {!processedUpload && !data.printful_order_id && (
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="flex items-center gap-2">
-                <label htmlFor="provider" className="text-sm font-medium text-stone-700">Proveedor IA:</label>
-                <select
-                  id="provider"
-                  className="input"
-                  value={provider}
-                  onChange={(e) => setProvider(e.target.value as 'openai' | 'gemini')}
-                >
-                  <option value="openai">OpenAI (DALL·E / gpt-image-2)</option>
-                  <option value="gemini">Google Gemini</option>
-                </select>
-              </div>
-              <Button
-                onClick={() => processImageMutation.mutate()}
-                disabled={processImageMutation.isPending}
-              >
-                {processImageMutation.isPending
-                  ? 'Procesando con IA...'
-                  : 'Generar imagen limpia con IA'}
-              </Button>
-              {processImageMutation.isError && (
-                <p className="text-sm text-red-600">
-                  Error: {processImageMutation.error?.message}
+            <div className="mt-4 space-y-3">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                <p className="font-medium">Flujo manual de producción</p>
+                <p>
+                  1) El pago ya fue recibido. 2) El operador debe generar la imagen limpia con IA.
+                  3) Revisar el resultado. 4) Enviar el borrador a Printful. Si la IA falla, se puede
+                  reintentar con el mismo u otro proveedor.
                 </p>
+              </div>
+              {data.processed_upload_error && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  <p className="font-medium">Error anterior al procesar con IA:</p>
+                  <p>{data.processed_upload_error}</p>
+                </div>
               )}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-2">
+                  <label htmlFor="provider" className="text-sm font-medium text-stone-700">Proveedor IA:</label>
+                  <select
+                    id="provider"
+                    className="input"
+                    value={provider}
+                    onChange={(e) => setProvider(e.target.value as 'openai' | 'gemini')}
+                  >
+                    <option value="openai">OpenAI (DALL·E / gpt-image-2)</option>
+                    <option value="gemini">Google Gemini</option>
+                  </select>
+                </div>
+                <Button
+                  onClick={() => processImageMutation.mutate()}
+                  disabled={processImageMutation.isPending}
+                >
+                  {processImageMutation.isPending
+                    ? 'Procesando con IA...'
+                    : data.processed_upload_error
+                      ? 'Reintentar generación con IA'
+                      : 'Generar imagen limpia con IA'}
+                </Button>
+                {processImageMutation.isError && (
+                  <p className="text-sm text-red-600">
+                    Error: {processImageMutation.error?.message}
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </Card>
