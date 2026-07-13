@@ -161,6 +161,16 @@ services:
       - AWS_S3_ENDPOINT_URL=${AWS_S3_ENDPOINT_URL:-http://minio:9000}
       - AWS_S3_CUSTOM_DOMAIN=${AWS_S3_CUSTOM_DOMAIN:-}
       - AWS_S3_VERIFY=${AWS_S3_VERIFY:-False}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-orders@recuerdomomentos.com}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_IMAGE_MODEL=${OPENAI_IMAGE_MODEL:-gpt-image-2}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_IMAGE_MODEL=${GEMINI_IMAGE_MODEL:-gemini-2.5-flash-image}
+      - AI_IMAGE_PROVIDER=${AI_IMAGE_PROVIDER:-gemini}
+      - AI_IMAGE_PROMPT=${AI_IMAGE_PROMPT:-}
+      - SITE_URL=${SITE_URL:-https://mugs.app.moonsbow.com}
+      - MEDIA_ROOT=/app/media
     depends_on:
       - db
       - redis
