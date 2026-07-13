@@ -75,7 +75,7 @@ class AdminOrderLineSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OrderLine
-        fields = ['product_name', 'variant_name', 'quantity', 'unit_price', 'total_price']
+        fields = ['id', 'product_name', 'variant_name', 'quantity', 'unit_price', 'total_price']
 
     def get_product_name(self, line: OrderLine) -> str:
         if line.variant and line.variant.product:
@@ -99,6 +99,7 @@ class AdminOrderSerializer(serializers.ModelSerializer):
     raw_upload = serializers.SerializerMethodField()
     processed_upload = serializers.SerializerMethodField()
     processed_upload_error = serializers.SerializerMethodField()
+    mockup = serializers.SerializerMethodField()
     discount_code = serializers.SlugRelatedField(read_only=True, slug_field='code')
 
     class Meta:
@@ -106,7 +107,7 @@ class AdminOrderSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'status', 'customer_email', 'customer_name',
             'total', 'currency', 'shipping_address', 'raw_upload', 'processed_upload',
-            'processed_upload_error', 'discount_code', 'discount_amount',
+            'processed_upload_error', 'mockup', 'discount_code', 'discount_amount',
             'lines', 'printful_order_id', 'printful_status', 'created_at', 'updated_at'
         ]
         read_only_fields = ['total', 'printful_order_id', 'printful_status']
@@ -129,6 +130,12 @@ class AdminOrderSerializer(serializers.ModelSerializer):
                 return line.processed_upload_error
         return None
 
+    def get_mockup(self, order: Order):
+        for line in order.lines.all():
+            if line.mockup:
+                return _upload_representation(line.mockup)
+        return None
+
 
 class AdminOrderLineProcessedUploadSerializer(serializers.ModelSerializer):
     processed_upload = serializers.SerializerMethodField()
@@ -139,6 +146,50 @@ class AdminOrderLineProcessedUploadSerializer(serializers.ModelSerializer):
 
     def get_processed_upload(self, line: OrderLine):
         return _upload_representation(line.processed_upload)
+
+
+class AdminOrderLineMockupSerializer(serializers.ModelSerializer):
+    customer_upload = serializers.SerializerMethodField()
+    processed_upload = serializers.SerializerMethodField()
+    mockup = serializers.SerializerMethodField()
+    product_name = serializers.SerializerMethodField()
+    variant_name = serializers.SerializerMethodField()
+    unit_price = serializers.SerializerMethodField()
+    total_price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OrderLine
+        fields = [
+            'id', 'product_name', 'variant_name', 'quantity',
+            'unit_price', 'total_price',
+            'customer_upload', 'processed_upload', 'mockup',
+            'processed_upload_error',
+        ]
+
+    def get_customer_upload(self, line: OrderLine):
+        return _upload_representation(line.customer_upload)
+
+    def get_processed_upload(self, line: OrderLine):
+        return _upload_representation(line.processed_upload)
+
+    def get_mockup(self, line: OrderLine):
+        return _upload_representation(line.mockup)
+
+    def get_product_name(self, line: OrderLine) -> str:
+        if line.variant and line.variant.product:
+            return line.variant.product.title
+        return line.title or ''
+
+    def get_variant_name(self, line: OrderLine) -> str:
+        if line.variant:
+            return line.variant.title or ''
+        return ''
+
+    def get_unit_price(self, line: OrderLine) -> str:
+        return str(line.price.quantize(Decimal('0.01')))
+
+    def get_total_price(self, line: OrderLine) -> str:
+        return str((line.price * line.quantity).quantize(Decimal('0.01')))
 
 
 class AdminOrderStatusUpdateSerializer(serializers.ModelSerializer):

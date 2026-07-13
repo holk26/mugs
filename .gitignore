@@ -43,4 +43,8 @@ docker-volumes/
 docs/superpowers/
 
 apps/django/**/__pycache__/
+apps/django/media/
+.playwright-mcp/
+screenshots/
+PY
 arquitectura.md

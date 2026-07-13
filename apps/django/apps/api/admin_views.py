@@ -21,6 +21,7 @@ from apps.api.admin_serializers import (
     AdminOrderSerializer,
     AdminOrderStatusUpdateSerializer,
     AdminOrderLineProcessedUploadSerializer,
+    AdminOrderLineMockupSerializer,
     AdminPrintfulSyncLogSerializer,
     AdminPrintfulWebhookEventSerializer,
     AdminPrintfulStoreProductSerializer,
@@ -34,6 +35,7 @@ from apps.printful.models import PrintfulSyncLog, PrintfulWebhookEvent
 from apps.printful.sync import push_order, confirm_printful_order
 from apps.api.tasks import sync_printful_catalog
 from apps.orders.ai_cleanup import ImageCleanupError
+from apps.orders.mockups import generate_line_mockup, MockupError
 
 User = get_user_model()
 
@@ -191,6 +193,31 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
             return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
 
         return Response(AdminOrderLineProcessedUploadSerializer(line).data)
+
+    @action(detail=True, methods=['post'], url_path='lines/(?P<line_id>[^/.]+)/mockup')
+    def generate_mockup(self, request, id=None, line_id=None):
+        """Generate a product preview mockup for a specific order line."""
+        order = self.get_object()
+        try:
+            line = order.lines.get(id=line_id)
+        except OrderLine.DoesNotExist:
+            return Response({'detail': 'Line not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        design_source = line.processed_upload or line.customer_upload
+        if not design_source:
+            return Response(
+                {'detail': 'This line has no customer upload or processed upload.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            generate_line_mockup(line)
+        except MockupError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        return Response(AdminOrderLineMockupSerializer(line).data)
 
 
 class AdminStatsViewSet(viewsets.ViewSet):

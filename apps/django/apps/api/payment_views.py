@@ -136,6 +136,26 @@ def stripe_webhook(request):
     elif event['type'] == 'payment_intent.succeeded':
         order_id = event.get('data', {}).get('object', {}).get('metadata', {}).get('order_id')
 
+    def _extract_shipping_address(session_obj, fallback_name):
+        shipping = (
+            session_obj.get('shipping_details')
+            or session_obj.get('customer_details', {}).get('shipping', {})
+            or {}
+        )
+        address = shipping.get('address') or session_obj.get('customer_details', {}).get('address', {})
+        if not address:
+            return None
+        return {
+            'name': shipping.get('name')
+                or session_obj.get('customer_details', {}).get('name', fallback_name),
+            'line1': address.get('line1', ''),
+            'line2': address.get('line2', ''),
+            'city': address.get('city', ''),
+            'state': address.get('state', ''),
+            'postal_code': address.get('postal_code', ''),
+            'country': address.get('country', ''),
+        }
+
     if order_id:
         with transaction.atomic():
             try:
@@ -147,25 +167,22 @@ def stripe_webhook(request):
                 order.status = 'paid'
                 order.save(update_fields=['status'])
 
+            session_obj = event.get('data', {}).get('object', {})
             if event['type'] == 'checkout.session.completed':
-                session_obj = event['data']['object']
-                shipping = (
-                    session_obj.get('shipping_details')
-                    or session_obj.get('customer_details', {}).get('shipping', {})
-                    or {}
-                )
-                address = shipping.get('address') or session_obj.get('customer_details', {}).get('address', {})
+                address = _extract_shipping_address(session_obj, order.customer_name)
                 if address:
-                    order.shipping_address = {
-                        'name': shipping.get('name') or session_obj.get('customer_details', {}).get('name', order.customer_name),
-                        'line1': address.get('line1', ''),
-                        'line2': address.get('line2', ''),
-                        'city': address.get('city', ''),
-                        'state': address.get('state', ''),
-                        'postal_code': address.get('postal_code', ''),
-                        'country': address.get('country', ''),
-                    }
+                    order.shipping_address = address
                     order.save(update_fields=['shipping_address'])
+            elif event['type'] == 'payment_intent.succeeded':
+                # Payment intents from Stripe Checkout embed the completed session
+                # in charges.data[].billing_details or the expanded payment_intent.
+                # We only update the address if we don't already have a line1.
+                current = order.shipping_address or {}
+                if not current.get('line1'):
+                    address = _extract_shipping_address(session_obj, order.customer_name)
+                    if address:
+                        order.shipping_address = address
+                        order.save(update_fields=['shipping_address'])
 
             if order.discount_code:
                 discount_code = DiscountCode.objects.select_for_update().get(pk=order.discount_code.pk)

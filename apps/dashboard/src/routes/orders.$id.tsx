@@ -7,6 +7,7 @@ import {
   pushOrderToPrintful,
   confirmPrintfulOrder,
   processLineImage,
+  generateLineMockup,
   type OrderLine,
 } from '@/api/orders';
 import apiClient from '@/api/client';
@@ -63,9 +64,20 @@ function OrderDetailPage() {
 
   const processImageMutation = useMutation({
     mutationFn: () => {
-      const line = data?.lines?.[0];
+      const line = data?.lines?.find((l) => l.id);
       if (!line?.id) throw new Error('No line available for image processing');
       return processLineImage(id, line.id, provider);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['order', id] });
+    },
+  });
+
+  const mockupMutation = useMutation({
+    mutationFn: () => {
+      const line = data?.lines?.find((l) => l.id);
+      if (!line?.id) throw new Error('No line available for mockup generation');
+      return generateLineMockup(id, line.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['order', id] });
@@ -124,7 +136,7 @@ function OrderDetailPage() {
               { key: 'total_price', header: 'Total', render: (l) => formatCurrency(Number(l.total_price)) },
             ]}
             data={data.lines}
-            keyExtractor={(l) => `${l.product_name}-${l.variant_name}-${l.quantity}`}
+            keyExtractor={(l) => l.id || `${l.product_name}-${l.variant_name}-${l.quantity}`}
           />
         ) : (
           <p className="text-stone-500">Esta orden no tiene productos.</p>
@@ -134,7 +146,7 @@ function OrderDetailPage() {
       {upload && (
         <Card>
           <h2 className="mb-4 text-lg font-semibold">Archivo del cliente</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <div>
               <p className="mb-2 text-sm font-medium text-stone-700">Original</p>
               <img
@@ -167,15 +179,33 @@ function OrderDetailPage() {
                 </a>
               </div>
             )}
+            {data.mockup && (
+              <div>
+                <p className="mb-2 text-sm font-medium text-stone-700">Vista previa del producto</p>
+                <img
+                  src={resolveFileUrl(data.mockup.file)}
+                  alt={data.mockup.name || 'Mockup'}
+                  className="h-48 w-full rounded-lg border border-stone-200 object-contain"
+                />
+                <a
+                  href={resolveFileUrl(data.mockup.file)}
+                  download={data.mockup.name || true}
+                  className="mt-2 inline-flex items-center justify-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+                >
+                  Descargar vista previa
+                </a>
+              </div>
+            )}
           </div>
-          {!processedUpload && !data.printful_order_id && (
+          {!data.printful_order_id && (
             <div className="mt-4 space-y-3">
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                 <p className="font-medium">Flujo manual de producción</p>
                 <p>
                   1) El pago ya fue recibido. 2) El operador debe generar la imagen limpia con IA.
-                  3) Revisar el resultado. 4) Enviar el borrador a Printful. Si la IA falla, se puede
-                  reintentar con el mismo u otro proveedor.
+                  3) Revisar el resultado. 4) Generar la vista previa del producto. 5) Enviar el
+                  borrador a Printful. Si la IA falla, se puede reintentar con el mismo u otro
+                  proveedor.
                 </p>
               </div>
               {data.processed_upload_error && (
@@ -184,7 +214,7 @@ function OrderDetailPage() {
                   <p>{data.processed_upload_error}</p>
                 </div>
               )}
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-2">
                   <label htmlFor="provider" className="text-sm font-medium text-stone-700">Proveedor IA:</label>
                   <select
@@ -207,9 +237,23 @@ function OrderDetailPage() {
                       ? 'Reintentar generación con IA'
                       : 'Generar imagen limpia con IA'}
                 </Button>
+                {processedUpload && !data.mockup && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => mockupMutation.mutate()}
+                    disabled={mockupMutation.isPending}
+                  >
+                    {mockupMutation.isPending ? 'Generando vista previa...' : 'Generar vista previa del producto'}
+                  </Button>
+                )}
                 {processImageMutation.isError && (
                   <p className="text-sm text-red-600">
                     Error: {processImageMutation.error?.message}
+                  </p>
+                )}
+                {mockupMutation.isError && (
+                  <p className="text-sm text-red-600">
+                    Error: {mockupMutation.error?.message}
                   </p>
                 )}
               </div>

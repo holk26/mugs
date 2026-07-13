@@ -39,6 +39,7 @@ export interface Order {
   raw_upload?: UploadFile | null;
   processed_upload?: UploadFile | null;
   processed_upload_error?: string | null;
+  mockup?: UploadFile | null;
   lines?: OrderLine[];
   printful_order_id?: string;
   printful_status?: string;
@@ -75,5 +76,10 @@ export async function processLineImage(orderId: string, lineId: string, provider
   const response = await apiClient.post(`/api/v1/admin/orders/${orderId}/lines/${lineId}/process-image/`, {
     provider,
   });
+  return response.data;
+}
+
+export async function generateLineMockup(orderId: string, lineId: string) {
+  const response = await apiClient.post(`/api/v1/admin/orders/${orderId}/lines/${lineId}/mockup/`);
   return response.data;
 }
