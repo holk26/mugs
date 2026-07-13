@@ -2,8 +2,6 @@ import base64
 import io
 import mimetypes
 import os
-import re
-from urllib.parse import urlparse
 
 import requests
 from django.conf import settings
@@ -31,8 +29,11 @@ def _resolve_image_url(file_field):
 
 
 def _download_image(url):
-    response = requests.get(url, timeout=60)
-    response.raise_for_status()
+    try:
+        response = requests.get(url, timeout=60)
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        raise ImageCleanupError(f'Failed to download image: {exc}') from exc
     return response.content, response.headers.get('content-type', '')
 
 

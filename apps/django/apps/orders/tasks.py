@@ -29,7 +29,7 @@ def process_order_images(self, order_id):
             provider = getattr(settings, 'AI_IMAGE_PROVIDER', 'gemini')
             generate_cleaned_upload(line, provider=provider)
             results.append({'line_id': str(line.id), 'status': 'processed'})
-        except ImageCleanupError as exc:
+        except Exception as exc:
             has_errors = True
             line.processed_upload_error = str(exc)
             line.save(update_fields=['processed_upload_error'])
