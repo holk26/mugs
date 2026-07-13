@@ -6,8 +6,8 @@ from django.db import migrations
 def ensure_admin_user(apps, schema_editor):
     User = apps.get_model('users', 'User')
 
-    email = os.environ.get('ADMIN_EMAIL') or os.environ.get('USER')
-    password = os.environ.get('ADMIN_PASSWORD') or os.environ.get('PASSWORK')
+    email = os.environ.get('ADMIN_EMAIL')
+    password = os.environ.get('ADMIN_PASSWORD')
 
     if not email or not password:
         return

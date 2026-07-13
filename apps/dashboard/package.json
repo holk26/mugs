@@ -35,10 +35,11 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "@playwright/test": "^1.45.0",
     "jsdom": "^24.1.0",
     "tailwindcss": "^4.0.0-alpha.17",
     "typescript": "^5.5.0",
-    "vite": "^5.3.0",
-    "vitest": "^2.0.0"
+    "vite": "^6.4.3",
+    "vitest": "^3.2.6"
   }
 }

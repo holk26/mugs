@@ -1,9 +1,13 @@
 import pytest
 from pytest_django.asserts import assertNumQueries
+from django.contrib.auth import get_user_model
+from rest_framework.test import APIClient
 
 from apps.discounts.models import DiscountCode, DiscountUsage
 from apps.orders.models import Order, OrderLine
 from apps.products.models import Collection, Product, ProductVariant
+
+User = get_user_model()
 
 
 @pytest.mark.django_db
@@ -366,3 +370,45 @@ class TestDiscountCodeAppliesToOrder:
         )
         with assertNumQueries(2):
             discount.applies_to_order(self.order)
+
+
+@pytest.mark.django_db
+class TestAdminDiscountCodeUsageCount:
+    def setup_method(self):
+        self.admin = User.objects.create_user(
+            email='admin@test.com',
+            username='admin@test.com',
+            password='pass',
+            is_staff=True,
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.admin)
+
+        self.discount = DiscountCode.objects.create(
+            code='COUNTME',
+            discount_type='percentage',
+            value='10',
+            applies_to='all',
+            is_active=True,
+        )
+
+    def test_admin_discount_list_includes_usage_count(self):
+        response = self.client.get('/api/v1/admin/discounts/')
+        assert response.status_code == 200
+        results = response.json()['results']
+        assert len(results) == 1
+        assert results[0]['usage_count'] == 0
+
+    def test_admin_discount_usage_count_reflects_confirmed_usages(self):
+        order = Order.objects.create(customer_email='a@b.com', total=10)
+        DiscountUsage.objects.create(
+            discount_code=self.discount,
+            order=order,
+            identifier='email:a@b.com',
+            status=DiscountUsage.STATUS_CONFIRMED,
+        )
+
+        response = self.client.get('/api/v1/admin/discounts/')
+        assert response.status_code == 200
+        results = response.json()['results']
+        assert results[0]['usage_count'] == 1

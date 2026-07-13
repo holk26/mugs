@@ -2,6 +2,7 @@ from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models import Count
 
 from apps.api.permissions import IsAdminUser
 from apps.api.pagination import StandardResultsSetPagination
@@ -10,7 +11,9 @@ from apps.discounts.serializers import AdminDiscountCodeSerializer, AdminDiscoun
 
 
 class AdminDiscountCodeViewSet(viewsets.ModelViewSet):
-    queryset = DiscountCode.objects.all().order_by('-created_at')
+    queryset = DiscountCode.objects.annotate(
+        _usage_count=Count('usages')
+    ).order_by('-created_at')
     serializer_class = AdminDiscountCodeSerializer
     permission_classes = [IsAdminUser]
     pagination_class = StandardResultsSetPagination

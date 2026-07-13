@@ -4,7 +4,7 @@ from apps.discounts.models import DiscountCode, DiscountUsage
 
 
 class AdminDiscountCodeSerializer(serializers.ModelSerializer):
-    usage_count = serializers.IntegerField(read_only=True)
+    usage_count = serializers.IntegerField(source='_usage_count', read_only=True)
 
     class Meta:
         model = DiscountCode

@@ -5,10 +5,13 @@ from unittest.mock import patch, MagicMock
 from celery.exceptions import MaxRetriesExceededError
 from django.urls import reverse
 from django.test import override_settings
+from django.core.files.base import ContentFile
 from rest_framework.test import APIClient
+from PIL import Image
 from apps.orders.models import Order, OrderLine
 from apps.orders.tasks import process_order_images
 from apps.orders.ai_cleanup import ImageCleanupError
+from apps.orders.mockups import generate_line_mockup
 from apps.products.models import Product, ProductVariant
 from apps.users.models import User
 
@@ -191,3 +194,26 @@ def test_paid_order_auto_push_when_enabled():
                     order.status = 'paid'
                     order.save()
                     mock_push.assert_called_once_with(order)
+
+
+def _make_image_file(name='drawing.png', color=(255, 0, 0)):
+    buffer = BytesIO()
+    Image.new('RGB', (200, 200), color).save(buffer, format='PNG')
+    buffer.seek(0)
+    return ContentFile(buffer.read(), name=name)
+
+
+@pytest.mark.django_db
+def test_generate_line_mockup_without_product_image():
+    """Mockup generation should fall back to a blank template when the product has no image."""
+    product = Product.objects.create(handle='mug', title='Mug', price='15.00')
+    variant = ProductVariant.objects.create(product=product, title='Red', price='15.00')
+    order = Order.objects.create(customer_email='test@example.com', total='15.00')
+    line = OrderLine.objects.create(order=order, variant=variant, title='Red Mug', quantity=1, price='15.00')
+    line.customer_upload.save('drawing.png', _make_image_file(), save=True)
+
+    generate_line_mockup(line)
+
+    line.refresh_from_db()
+    assert line.mockup
+    assert line.mockup.name.endswith('.png')

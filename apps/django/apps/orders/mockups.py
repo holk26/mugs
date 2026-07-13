@@ -12,6 +12,23 @@ class MockupError(Exception):
     pass
 
 
+def _create_blank_template(width: int = 800, height: int = 800) -> Image.Image:
+    """Create a generic mug-coloured template when no product image is available."""
+    # Warm off-white/cream background that reads as a blank mug surface.
+    template = Image.new('RGB', (width, height), (245, 243, 238))
+
+    # Draw a subtle elliptical outline so it doesn't look like a broken image.
+    from PIL import ImageDraw
+    draw = ImageDraw.Draw(template)
+    margin = 60
+    draw.ellipse(
+        [margin, margin * 2, width - margin, height - margin * 2],
+        outline=(210, 205, 195),
+        width=4,
+    )
+    return template
+
+
 def _open_image(source):
     """Open an image from a FileField or a URL."""
     if hasattr(source, 'file') and source.file:
@@ -37,11 +54,13 @@ def generate_line_mockup(line: OrderLine) -> OrderLine:
         raise MockupError('Line has no customer upload or processed upload.')
 
     product_media = line.variant.product.medias.filter(type='image').first()
-    if not product_media or not product_media.file:
-        raise MockupError('Product has no image to use as template.')
+    if product_media and product_media.file:
+        template = _open_image(product_media.file)
+    else:
+        # Fallback: render the design on a generic mug-coloured canvas.
+        template = _create_blank_template()
 
     design = _open_image(design_source)
-    template = _open_image(product_media.file)
 
     if design.mode in ('RGBA', 'P'):
         design = design.convert('RGBA')
@@ -55,7 +74,7 @@ def generate_line_mockup(line: OrderLine) -> OrderLine:
 
     # Use the processed upload as a square-ish design placed in the center of the mug.
     template_width, template_height = template.size
-    design_max_width = int(template_width * 0.40)
+    design_max_width = int(template_width * 0.50)
     design.thumbnail((design_max_width, design_max_width), Image.Resampling.LANCZOS)
 
     design_width, design_height = design.size
