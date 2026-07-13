@@ -2,6 +2,7 @@ import os
 import shutil
 import pytest
 from io import BytesIO
+from unittest.mock import patch
 from django.urls import reverse
 from django.conf import settings
 from rest_framework.test import APIClient
@@ -92,3 +93,16 @@ class TestDrawingUpload:
         self.line.refresh_from_db()
         assert self.line.customer_upload
         assert os.path.exists(self.line.customer_upload.path)
+
+
+@pytest.mark.django_db
+def test_paid_order_triggers_image_processing_task():
+    product = Product.objects.create(handle='mug', title='Mug', price='15.00')
+    variant = ProductVariant.objects.create(product=product, title='Red', price='15.00')
+    order = Order.objects.create(customer_email='test@example.com', total='15.00')
+    OrderLine.objects.create(order=order, variant=variant, title='Red Mug', quantity=1, price='15.00')
+
+    with patch('apps.orders.signals.process_order_images') as mock_task:
+        order.status = 'paid'
+        order.save()
+        mock_task.delay.assert_called_once_with(order.id)
