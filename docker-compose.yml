@@ -58,8 +58,8 @@ services:
       - GEMINI_IMAGE_MODEL=${GEMINI_IMAGE_MODEL:-gemini-2.5-flash-image}
       - AI_IMAGE_PROVIDER=${AI_IMAGE_PROVIDER:-gemini}
       - AI_IMAGE_PROMPT=${AI_IMAGE_PROMPT:-}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-${USER:-admin@example.com}}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-${PASSWORK:-}}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - MEDIA_ROOT=/app/media
       - SITE_URL=${SITE_URL:-https://mugs.app.moonsbow.com}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-mugs}
@@ -169,8 +169,8 @@ services:
       - PRINTFUL_WEBHOOK_SECRET=${PRINTFUL_WEBHOOK_SECRET:-}
       - PRINTFUL_BASE_URL=${PRINTFUL_BASE_URL:-https://api.printful.com}
       - PRINTFUL_AUTO_PUSH=${PRINTFUL_AUTO_PUSH:-False}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-${USER:-admin@example.com}}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-${PASSWORK:-}}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-mugs}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-mugs-secret}
       - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME:-mugs-media}
