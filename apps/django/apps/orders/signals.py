@@ -4,6 +4,7 @@ from django.dispatch import receiver
 from apps.core.email import send_order_confirmation_email, send_order_update_email
 from apps.orders.models import Order
 from apps.printful.sync import push_order
+from apps.orders.tasks import process_order_images
 
 
 @receiver(post_save, sender=Order)
@@ -11,8 +12,9 @@ def handle_order_paid(sender, instance, created, **kwargs):
     if created:
         return
 
-    if instance.status == 'paid' and not instance.printful_order_id:
-        if settings.PRINTFUL_API_TOKEN:
+    if instance.status == 'paid':
+        process_order_images.delay(instance.id)
+        if settings.PRINTFUL_API_TOKEN and not instance.printful_order_id:
             push_order(instance)
         send_order_confirmation_email(instance)
     elif instance.status in ('processing', 'fulfilled', 'cancelled', 'failed') and instance.printful_order_id:
