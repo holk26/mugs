@@ -2,6 +2,10 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
+overrides:
+  yaml: ^2.8.3
+  esbuild: ^0.28.1
+
 allowBuilds:
   better-sqlite3: true
   esbuild: true
