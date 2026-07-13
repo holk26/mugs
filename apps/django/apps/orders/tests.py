@@ -55,11 +55,6 @@ class TestDrawingUpload:
             price='15.00',
         )
 
-    def teardown_method(self):
-        media_root = settings.MEDIA_ROOT
-        if os.path.isdir(media_root):
-            shutil.rmtree(media_root)
-
     def test_upload_drawing(self):
         url = reverse('order-upload-drawing', kwargs={'pk': self.order.id, 'line_id': self.line.id})
         image = BytesIO(b'fake-image-data')
@@ -102,7 +97,22 @@ def test_paid_order_triggers_image_processing_task():
     order = Order.objects.create(customer_email='test@example.com', total='15.00')
     OrderLine.objects.create(order=order, variant=variant, title='Red Mug', quantity=1, price='15.00')
 
+    with patch('apps.orders.signals.transaction.on_commit') as mock_on_commit:
+        mock_on_commit.side_effect = lambda func: func()
+        with patch('apps.orders.signals.process_order_images') as mock_task:
+            order.status = 'paid'
+            order.save()
+            mock_task.delay.assert_called_once_with(order.id)
+
+
+@pytest.mark.django_db
+def test_paid_order_does_not_retrigger_task():
+    product = Product.objects.create(handle='mug', title='Mug', price='15.00')
+    variant = ProductVariant.objects.create(product=product, title='Red', price='15.00')
+    order = Order.objects.create(customer_email='test@example.com', total='15.00', status='paid')
+    OrderLine.objects.create(order=order, variant=variant, title='Red Mug', quantity=1, price='15.00')
+
     with patch('apps.orders.signals.process_order_images') as mock_task:
-        order.status = 'paid'
+        order.customer_name = 'Updated'
         order.save()
-        mock_task.delay.assert_called_once_with(order.id)
+        mock_task.delay.assert_not_called()
