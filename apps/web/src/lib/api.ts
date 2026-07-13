@@ -49,7 +49,19 @@ export interface Order {
   customer_name: string;
   total: string;
   currency: string;
+  shipping_address: ShippingAddress;
   lines: OrderLine[];
+}
+
+export interface ShippingAddress {
+  name: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+  phone?: string;
 }
 
 export interface CheckoutSession {
@@ -104,7 +116,8 @@ export async function getProduct(handle: string): Promise<Product> {
 
 export async function createOrder(
   items: CartItem[],
-  customer: { email: string; name: string }
+  customer: { email: string; name: string },
+  shippingAddress: ShippingAddress
 ): Promise<Order> {
   const lines = items.map((item) => ({
     variant: item.variantId,
@@ -118,7 +131,7 @@ export async function createOrder(
     body: JSON.stringify({
       customer_email: customer.email,
       customer_name: customer.name,
-      shipping_address: {},
+      shipping_address: shippingAddress,
       lines,
     }),
   });

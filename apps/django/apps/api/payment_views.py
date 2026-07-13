@@ -149,11 +149,15 @@ def stripe_webhook(request):
 
             if event['type'] == 'checkout.session.completed':
                 session_obj = event['data']['object']
-                shipping = session_obj.get('shipping_details') or session_obj.get('customer_details', {}).get('shipping', {})
-                address = shipping.get('address', {})
+                shipping = (
+                    session_obj.get('shipping_details')
+                    or session_obj.get('customer_details', {}).get('shipping', {})
+                    or {}
+                )
+                address = shipping.get('address') or session_obj.get('customer_details', {}).get('address', {})
                 if address:
                     order.shipping_address = {
-                        'name': shipping.get('name', order.customer_name),
+                        'name': shipping.get('name') or session_obj.get('customer_details', {}).get('name', order.customer_name),
                         'line1': address.get('line1', ''),
                         'line2': address.get('line2', ''),
                         'city': address.get('city', ''),

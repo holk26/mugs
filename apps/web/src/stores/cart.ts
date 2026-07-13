@@ -78,7 +78,7 @@ export const useCart = create<CartState>()(
       name: 'recuerdo-cart',
       storage: createJSONStorage(() => safeLocalStorage),
       partialize: (state) => ({
-        items: state.items.map(({ uploadPreview, ...rest }) => rest),
+        items: state.items,
       }),
     }
   )

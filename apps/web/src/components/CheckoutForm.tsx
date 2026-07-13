@@ -10,16 +10,26 @@ import {
   type OrderLine,
   type DiscountResult,
 } from '../lib/api';
+import { AddressForm, type AddressFormData } from './AddressForm';
 import { ArrowLeft, ExternalLink, Tag, X } from 'lucide-react';
 
 function formatMoney(amount: number | string): string {
   return `$${Number(amount).toFixed(2)}`;
 }
 
+const emptyAddress: AddressFormData = {
+  address1: '',
+  city: '',
+  state_code: '',
+  zip: '',
+  country_code: '',
+};
+
 export default function CheckoutForm() {
   const { items, total } = useCart();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [address, setAddress] = useState<AddressFormData>(emptyAddress);
   const [step, setStep] = useState<'form' | 'payment'>('form');
   const [orderId, setOrderId] = useState('');
   const [error, setError] = useState('');
@@ -29,14 +39,28 @@ export default function CheckoutForm() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [discount, setDiscount] = useState<DiscountResult | null>(null);
 
+  const addressComplete =
+    address.address1.trim() &&
+    address.city.trim() &&
+    address.state_code.trim() &&
+    address.zip.trim() &&
+    address.country_code.trim();
+
   const handleCreateOrder = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!email || items.length === 0) return;
+    if (!email || items.length === 0 || !addressComplete) return;
 
     setError('');
     setLoading(true);
     try {
-      const order = await createOrder(items, { email, name });
+      const order = await createOrder(items, { email, name }, {
+        name: name || email,
+        line1: address.address1,
+        city: address.city,
+        state: address.state_code,
+        postal_code: address.zip,
+        country: address.country_code,
+      });
       setOrderId(order.id);
 
       for (const item of items) {
@@ -151,6 +175,13 @@ export default function CheckoutForm() {
             </div>
 
             <div className="rounded-2xl border border-stone-100 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-stone-900">Shipping address</h2>
+              <div className="mt-4">
+                <AddressForm value={address} onChange={setAddress} disabled={loading} />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-stone-100 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-stone-900">Order summary</h2>
               <ul className="mt-4 space-y-3 text-sm text-stone-600">
                 {items.map((item) => (
@@ -174,7 +205,7 @@ export default function CheckoutForm() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !addressComplete}
               className="btn-primary w-full disabled:opacity-60"
             >
               {loading ? 'Processing...' : 'Continue to payment'}
