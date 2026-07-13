@@ -35,4 +35,4 @@ def handle_order_paid(sender, instance, created, **kwargs):
 
         transaction.on_commit(_on_commit)
     elif instance.status in ('processing', 'fulfilled', 'cancelled', 'failed') and instance.printful_order_id:
-        send_order_update_email(instance)
+        transaction.on_commit(lambda: send_order_update_email(instance))
