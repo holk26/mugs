@@ -125,11 +125,16 @@ def stripe_webhook(request):
     except stripe.error.SignatureVerificationError:
         return Response({'detail': 'Invalid signature.'}, status=status.HTTP_400_BAD_REQUEST)
 
+    # Stripe's newer SDK returns StripeObject instances from construct_event.
+    # Normalize the whole payload to plain dicts so the rest of the view can
+    # use `.get()` safely, both in production and in unit tests.
+    event = stripe._util.convert_to_dict(event)
+
     order_id = None
     if event['type'] == 'checkout.session.completed':
-        order_id = event['data']['object'].get('metadata', {}).get('order_id')
+        order_id = event.get('data', {}).get('object', {}).get('metadata', {}).get('order_id')
     elif event['type'] == 'payment_intent.succeeded':
-        order_id = event['data']['object'].get('metadata', {}).get('order_id')
+        order_id = event.get('data', {}).get('object', {}).get('metadata', {}).get('order_id')
 
     if order_id:
         with transaction.atomic():

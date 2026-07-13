@@ -216,4 +216,4 @@ def test_admin_order_process_image(admin_client):
         response = admin_client.post(f'/api/v1/admin/orders/{order.id}/lines/{line.id}/process-image/')
 
     assert response.status_code == 200
-    mock_cleanup.assert_called_once_with(line, provider='openai')
+    mock_cleanup.assert_called_once_with(line, provider='gemini')
