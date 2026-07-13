@@ -153,3 +153,41 @@ def test_process_order_images_per_line_error_then_retry():
 def test_process_order_images_order_not_found():
     result = process_order_images.run('00000000-0000-0000-0000-000000000000')
     assert result == {'error': 'Order not found'}
+
+
+@pytest.mark.django_db
+def test_paid_order_does_not_auto_push_when_disabled():
+    product = Product.objects.create(handle='mug', title='Mug', price='15.00')
+    variant = ProductVariant.objects.create(
+        product=product, title='Red', price='15.00', printful_variant_id='123'
+    )
+    order = Order.objects.create(customer_email='test@example.com', total='15.00')
+    OrderLine.objects.create(order=order, variant=variant, title='Red Mug', quantity=1, price='15.00')
+
+    with override_settings(PRINTFUL_AUTO_PUSH=False, PRINTFUL_API_TOKEN='token'):
+        with patch('apps.orders.signals.transaction.on_commit') as mock_on_commit:
+            mock_on_commit.side_effect = lambda func: func()
+            with patch('apps.orders.signals.process_order_images'):
+                with patch('apps.orders.signals.push_order') as mock_push:
+                    order.status = 'paid'
+                    order.save()
+                    mock_push.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_paid_order_auto_push_when_enabled():
+    product = Product.objects.create(handle='mug', title='Mug', price='15.00')
+    variant = ProductVariant.objects.create(
+        product=product, title='Red', price='15.00', printful_variant_id='123'
+    )
+    order = Order.objects.create(customer_email='test@example.com', total='15.00')
+    OrderLine.objects.create(order=order, variant=variant, title='Red Mug', quantity=1, price='15.00')
+
+    with override_settings(PRINTFUL_AUTO_PUSH=True, PRINTFUL_API_TOKEN='token'):
+        with patch('apps.orders.signals.transaction.on_commit') as mock_on_commit:
+            mock_on_commit.side_effect = lambda func: func()
+            with patch('apps.orders.signals.process_order_images'):
+                with patch('apps.orders.signals.push_order') as mock_push:
+                    order.status = 'paid'
+                    order.save()
+                    mock_push.assert_called_once_with(order)

@@ -29,7 +29,11 @@ def handle_order_paid(sender, instance, created, **kwargs):
     if instance.status == 'paid' and previous_status != 'paid':
         def _on_commit():
             process_order_images.delay(instance.id)
-            if settings.PRINTFUL_API_TOKEN and not instance.printful_order_id:
+            if (
+                settings.PRINTFUL_AUTO_PUSH
+                and settings.PRINTFUL_API_TOKEN
+                and not instance.printful_order_id
+            ):
                 push_order(instance)
             send_order_confirmation_email(instance)
 
