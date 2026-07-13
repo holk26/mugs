@@ -1,4 +1,5 @@
 from celery import shared_task
+from django.conf import settings
 from apps.orders.models import Order
 from apps.orders.ai_cleanup import generate_cleaned_upload, ImageCleanupError
 
@@ -16,7 +17,8 @@ def process_order_images(self, order_id):
             results.append({'line_id': str(line.id), 'status': 'skipped'})
             continue
         try:
-            generate_cleaned_upload(line, provider='gemini')
+            provider = getattr(settings, 'AI_IMAGE_PROVIDER', 'gemini')
+            generate_cleaned_upload(line, provider=provider)
             results.append({'line_id': str(line.id), 'status': 'processed'})
         except ImageCleanupError as exc:
             line.processed_upload_error = str(exc)
