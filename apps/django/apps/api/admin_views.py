@@ -36,6 +36,7 @@ from apps.printful.models import PrintfulSyncLog, PrintfulWebhookEvent
 from apps.printful.sync import push_order, confirm_printful_order
 from apps.api.tasks import sync_printful_catalog
 from apps.orders.ai_cleanup import ImageCleanupError
+from apps.orders.image_postprocess import ImagePostprocessError
 from apps.orders.mockups import generate_line_mockup, MockupError
 
 User = get_user_model()
@@ -199,7 +200,7 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
         try:
             from apps.orders.ai_cleanup import generate_cleaned_upload
             generate_cleaned_upload(line, provider=provider, operator_prompt=operator_prompt)
-        except ImageCleanupError as exc:
+        except (ImageCleanupError, ImagePostprocessError) as exc:
             return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
 
         return Response(AdminOrderLineProcessedUploadSerializer(line).data)

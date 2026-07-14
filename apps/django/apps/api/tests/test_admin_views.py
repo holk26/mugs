@@ -8,6 +8,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.orders.models import Order, OrderLine
 from apps.orders.ai_cleanup import ImageCleanupError
+from apps.orders.image_postprocess import ImagePostprocessError
 from apps.products.models import Product, ProductVariant
 
 
@@ -119,4 +120,22 @@ def test_process_line_image_cleanup_error_returns_502(admin_client, paid_order_w
 
     assert response.status_code == 502
     assert response.data['detail'] == 'AI provider failed'
+    mock_generate.assert_called_once_with(line, provider='openai', operator_prompt='Make it blue')
+
+
+@pytest.mark.django_db
+def test_process_line_image_returns_502_on_postprocess_error(admin_client, paid_order_with_upload, settings):
+    settings.AI_IMAGE_PROVIDER = 'openai'
+    order = paid_order_with_upload
+    line = order.lines.first()
+    url = f'/api/v1/admin/orders/{order.id}/lines/{line.id}/process-image/'
+
+    with patch(
+        'apps.orders.ai_cleanup.generate_cleaned_upload',
+        side_effect=ImagePostprocessError('Invalid specs'),
+    ) as mock_generate:
+        response = admin_client.post(url, {'prompt': 'Make it blue'}, format='json')
+
+    assert response.status_code == 502
+    assert response.data['detail'] == 'Invalid specs'
     mock_generate.assert_called_once_with(line, provider='openai', operator_prompt='Make it blue')
