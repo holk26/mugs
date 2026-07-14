@@ -217,3 +217,13 @@ def test_generate_line_mockup_without_product_image():
     line.refresh_from_db()
     assert line.mockup
     assert line.mockup.name.endswith('.png')
+
+
+@pytest.mark.django_db
+def test_orderline_processed_upload_prompt_blank_default():
+    product = Product.objects.create(handle='mug', title='Mug', price='15.00')
+    variant = ProductVariant.objects.create(product=product, title='Red', price='15.00')
+    order = Order.objects.create(customer_email='test@example.com', total='15.00')
+    OrderLine.objects.create(order=order, variant=variant, title='Red Mug', quantity=1, price='15.00')
+    line = order.lines.first()
+    assert line.processed_upload_prompt == ''

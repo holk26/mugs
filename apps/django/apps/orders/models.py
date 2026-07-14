@@ -64,6 +64,10 @@ class OrderLine(models.Model):
     )
     processed_upload_generated_at = models.DateTimeField(blank=True, null=True)
     processed_upload_error = models.TextField(blank=True)
+    processed_upload_prompt = models.TextField(
+        blank=True,
+        help_text='Operator prompt/instructions used to generate processed_upload',
+    )
     mockup = models.FileField(
         upload_to='mockups/%Y/%m/%d/',
         blank=True,
