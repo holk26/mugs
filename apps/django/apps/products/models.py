@@ -28,7 +28,6 @@ class Product(models.Model):
     )
     print_dpi = models.PositiveIntegerField(
         default=0, blank=True,
-        validators=[MinValueValidator(1)],
         help_text='Target DPI (0 = use global default)',
     )
     image_background = models.CharField(

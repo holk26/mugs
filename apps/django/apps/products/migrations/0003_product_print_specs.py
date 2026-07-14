@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='product',
             name='print_dpi',
-            field=models.PositiveIntegerField(blank=True, default=0, help_text='Target DPI (0 = use global default)', validators=[django.core.validators.MinValueValidator(1)]),
+            field=models.PositiveIntegerField(blank=True, default=0, help_text='Target DPI (0 = use global default)'),
         ),
         migrations.AddField(
             model_name='product',
