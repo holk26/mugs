@@ -137,6 +137,11 @@ class AdminOrderSerializer(serializers.ModelSerializer):
         return None
 
 
+class AdminProcessImageSerializer(serializers.Serializer):
+    provider = serializers.CharField(required=False, allow_blank=True)
+    prompt = serializers.CharField(required=False, allow_blank=True)
+
+
 class AdminOrderLineProcessedUploadSerializer(serializers.ModelSerializer):
     processed_upload = serializers.SerializerMethodField()
 

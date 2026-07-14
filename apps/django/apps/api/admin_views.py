@@ -20,6 +20,7 @@ from apps.api.admin_serializers import (
     AdminCollectionSerializer,
     AdminOrderSerializer,
     AdminOrderStatusUpdateSerializer,
+    AdminProcessImageSerializer,
     AdminOrderLineProcessedUploadSerializer,
     AdminOrderLineMockupSerializer,
     AdminPrintfulSyncLogSerializer,
@@ -171,7 +172,12 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='lines/(?P<line_id>[^/.]+)/process-image')
     def process_line_image(self, request, id=None, line_id=None):
-        """Generate an AI-cleaned image for a specific order line."""
+        """Generate an AI-cleaned image for a specific order line.
+
+        Accepts an optional JSON body with:
+        - provider: AI provider to use (e.g. 'openai' or 'gemini').
+        - prompt: Additional operator instructions for the image cleanup.
+        """
         order = self.get_object()
         try:
             line = order.lines.get(id=line_id)
@@ -184,8 +190,11 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        provider = request.data.get('provider') or getattr(settings, 'AI_IMAGE_PROVIDER', 'openai')
-        operator_prompt = request.data.get('prompt', '')
+        serializer = AdminProcessImageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        provider = serializer.validated_data.get('provider') or getattr(settings, 'AI_IMAGE_PROVIDER', 'openai')
+        operator_prompt = serializer.validated_data.get('prompt', '')
 
         try:
             from apps.orders.ai_cleanup import generate_cleaned_upload

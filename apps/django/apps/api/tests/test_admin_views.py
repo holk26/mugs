@@ -7,6 +7,7 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.orders.models import Order, OrderLine
+from apps.orders.ai_cleanup import ImageCleanupError
 from apps.products.models import Product, ProductVariant
 
 
@@ -46,6 +47,11 @@ def paid_order_with_upload():
     return order
 
 
+def _mock_generate_cleaned_upload(line, provider=None, operator_prompt=None):
+    line.processed_upload_prompt = operator_prompt or ''
+    line.save(update_fields=['processed_upload_prompt'])
+
+
 @pytest.mark.django_db
 def test_process_line_image_accepts_prompt(admin_client, paid_order_with_upload, settings):
     settings.AI_IMAGE_PROVIDER = 'openai'
@@ -53,8 +59,64 @@ def test_process_line_image_accepts_prompt(admin_client, paid_order_with_upload,
     line = order.lines.first()
     url = f'/api/v1/admin/orders/{order.id}/lines/{line.id}/process-image/'
 
-    with patch('apps.orders.ai_cleanup.generate_cleaned_upload') as mock_generate:
+    with patch(
+        'apps.orders.ai_cleanup.generate_cleaned_upload',
+        side_effect=_mock_generate_cleaned_upload,
+    ) as mock_generate:
         response = admin_client.post(url, {'prompt': 'Make it blue'}, format='json')
 
     assert response.status_code == 200
+    assert response.data['processed_upload_prompt'] == 'Make it blue'
+    mock_generate.assert_called_once_with(line, provider='openai', operator_prompt='Make it blue')
+
+
+@pytest.mark.django_db
+def test_process_line_image_omits_prompt(admin_client, paid_order_with_upload, settings):
+    settings.AI_IMAGE_PROVIDER = 'openai'
+    order = paid_order_with_upload
+    line = order.lines.first()
+    url = f'/api/v1/admin/orders/{order.id}/lines/{line.id}/process-image/'
+
+    with patch(
+        'apps.orders.ai_cleanup.generate_cleaned_upload',
+        side_effect=_mock_generate_cleaned_upload,
+    ) as mock_generate:
+        response = admin_client.post(url, {}, format='json')
+
+    assert response.status_code == 200
+    mock_generate.assert_called_once_with(line, provider='openai', operator_prompt='')
+
+
+@pytest.mark.django_db
+def test_process_line_image_empty_prompt(admin_client, paid_order_with_upload, settings):
+    settings.AI_IMAGE_PROVIDER = 'openai'
+    order = paid_order_with_upload
+    line = order.lines.first()
+    url = f'/api/v1/admin/orders/{order.id}/lines/{line.id}/process-image/'
+
+    with patch(
+        'apps.orders.ai_cleanup.generate_cleaned_upload',
+        side_effect=_mock_generate_cleaned_upload,
+    ) as mock_generate:
+        response = admin_client.post(url, {'prompt': ''}, format='json')
+
+    assert response.status_code == 200
+    mock_generate.assert_called_once_with(line, provider='openai', operator_prompt='')
+
+
+@pytest.mark.django_db
+def test_process_line_image_cleanup_error_returns_502(admin_client, paid_order_with_upload, settings):
+    settings.AI_IMAGE_PROVIDER = 'openai'
+    order = paid_order_with_upload
+    line = order.lines.first()
+    url = f'/api/v1/admin/orders/{order.id}/lines/{line.id}/process-image/'
+
+    with patch(
+        'apps.orders.ai_cleanup.generate_cleaned_upload',
+        side_effect=ImageCleanupError('AI provider failed'),
+    ) as mock_generate:
+        response = admin_client.post(url, {'prompt': 'Make it blue'}, format='json')
+
+    assert response.status_code == 502
+    assert response.data['detail'] == 'AI provider failed'
     mock_generate.assert_called_once_with(line, provider='openai', operator_prompt='Make it blue')
