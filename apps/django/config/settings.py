@@ -151,6 +151,13 @@ PRINTFUL_WEBHOOK_SECRET = os.environ.get('PRINTFUL_WEBHOOK_SECRET', '')
 PRINTFUL_BASE_URL = os.environ.get('PRINTFUL_BASE_URL', 'https://api.printful.com')
 PRINTFUL_AUTO_PUSH = os.environ.get('PRINTFUL_AUTO_PUSH', 'False').lower() in ('1', 'true', 'yes', 'on')
 
+# Printful print specifications (defaults for sublimation mug)
+PRINTFUL_PRINT_WIDTH_MM = int(os.environ.get('PRINTFUL_PRINT_WIDTH_MM', '240'))
+PRINTFUL_PRINT_HEIGHT_MM = int(os.environ.get('PRINTFUL_PRINT_HEIGHT_MM', '92'))
+PRINTFUL_PRINT_DPI = int(os.environ.get('PRINTFUL_PRINT_DPI', '300'))
+PRINTFUL_IMAGE_BACKGROUND = os.environ.get('PRINTFUL_IMAGE_BACKGROUND', 'white')
+PRINTFUL_IMAGE_FORMAT = os.environ.get('PRINTFUL_IMAGE_FORMAT', 'png')
+
 SITE_URL = os.environ.get("SITE_URL", "http://localhost:4321")
 
 # Stripe
