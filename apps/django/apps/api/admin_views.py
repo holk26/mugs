@@ -185,10 +185,11 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
             )
 
         provider = request.data.get('provider') or getattr(settings, 'AI_IMAGE_PROVIDER', 'openai')
+        operator_prompt = request.data.get('prompt', '')
 
         try:
             from apps.orders.ai_cleanup import generate_cleaned_upload
-            generate_cleaned_upload(line, provider=provider)
+            generate_cleaned_upload(line, provider=provider, operator_prompt=operator_prompt)
         except ImageCleanupError as exc:
             return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
 

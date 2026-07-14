@@ -142,7 +142,12 @@ class AdminOrderLineProcessedUploadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OrderLine
-        fields = ['id', 'processed_upload', 'processed_upload_generated_at', 'processed_upload_error']
+        fields = [
+            'id',
+            'processed_upload',
+            'processed_upload_prompt',
+            'processed_upload_generated_at',
+        ]
 
     def get_processed_upload(self, line: OrderLine):
         return _upload_representation(line.processed_upload)
