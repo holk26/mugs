@@ -1,6 +1,14 @@
 import apiClient from './client';
 import type { PaginatedResponse } from './products';
 
+export interface PrintSpecs {
+  width_mm: number;
+  height_mm: number;
+  dpi: number;
+  format: string;
+  background: string;
+}
+
 export interface OrderLine {
   id: string;
   product_name: string;
@@ -8,6 +16,8 @@ export interface OrderLine {
   quantity: number;
   unit_price: string;
   total_price: string;
+  applied_print_specs?: PrintSpecs | null;
+  processed_upload_prompt?: string | null;
 }
 
 export interface UploadFile {
@@ -72,9 +82,15 @@ export async function confirmPrintfulOrder(id: string) {
   return response.data;
 }
 
-export async function processLineImage(orderId: string, lineId: string, provider?: 'openai' | 'gemini') {
+export async function processLineImage(
+  orderId: string,
+  lineId: string,
+  provider?: 'openai' | 'gemini',
+  prompt?: string,
+) {
   const response = await apiClient.post(`/api/v1/admin/orders/${orderId}/lines/${lineId}/process-image/`, {
     provider,
+    prompt,
   });
   return response.data;
 }

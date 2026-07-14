@@ -8,12 +8,10 @@ import {
   confirmPrintfulOrder,
   processLineImage,
   generateLineMockup,
-  type OrderLine,
 } from '@/api/orders';
 import apiClient from '@/api/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { DataTable } from '@/components/ui/DataTable';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
@@ -33,6 +31,9 @@ function OrderDetailPage() {
   const { id } = Route.useParams();
   const queryClient = useQueryClient();
   const [provider, setProvider] = useState<'openai' | 'gemini'>('gemini');
+  const [prompts, setPrompts] = useState<Record<string, string>>({});
+  const [processing, setProcessing] = useState<Record<string, boolean>>({});
+  const [processErrors, setProcessErrors] = useState<Record<string, string>>({});
   const { data, isLoading } = useQuery({
     queryKey: ['order', id],
     queryFn: () => getOrder(id),
@@ -62,16 +63,20 @@ function OrderDetailPage() {
     },
   });
 
-  const processImageMutation = useMutation({
-    mutationFn: () => {
-      const line = data?.lines?.find((l) => l.id);
-      if (!line?.id) throw new Error('No line available for image processing');
-      return processLineImage(id, line.id, provider);
-    },
-    onSuccess: () => {
+  const handleProcessImage = async (lineId: string) => {
+    setProcessErrors((prev) => ({ ...prev, [lineId]: '' }));
+    setProcessing((prev) => ({ ...prev, [lineId]: true }));
+    try {
+      await processLineImage(id, lineId, provider, prompts[lineId] || '');
       queryClient.invalidateQueries({ queryKey: ['order', id] });
-    },
-  });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al procesar la imagen';
+      setProcessErrors((prev) => ({ ...prev, [lineId]: message }));
+    } finally {
+      setProcessing((prev) => ({ ...prev, [lineId]: false }));
+    }
+  };
 
   const mockupMutation = useMutation({
     mutationFn: () => {
@@ -127,17 +132,93 @@ function OrderDetailPage() {
       <Card>
         <h2 className="mb-4 text-lg font-semibold">Productos</h2>
         {data.lines && data.lines.length > 0 ? (
-          <DataTable
-            columns={[
-              { key: 'product', header: 'Producto', render: (l: OrderLine) => l.product_name },
-              { key: 'variant', header: 'Variante', render: (l) => l.variant_name || '-' },
-              { key: 'quantity', header: 'Cantidad', render: (l) => l.quantity },
-              { key: 'unit_price', header: 'Precio unitario', render: (l) => formatCurrency(Number(l.unit_price)) },
-              { key: 'total_price', header: 'Total', render: (l) => formatCurrency(Number(l.total_price)) },
-            ]}
-            data={data.lines}
-            keyExtractor={(l) => l.id || `${l.product_name}-${l.variant_name}-${l.quantity}`}
-          />
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <label htmlFor="provider" className="text-sm font-medium text-stone-700">
+                Proveedor IA:
+              </label>
+              <select
+                id="provider"
+                className="input"
+                value={provider}
+                onChange={(e) => setProvider(e.target.value as 'openai' | 'gemini')}
+              >
+                <option value="openai">OpenAI (DALL·E / gpt-image-2)</option>
+                <option value="gemini">Google Gemini</option>
+              </select>
+            </div>
+            {data.lines.map((line) => (
+              <div key={line.id} className="rounded-lg border border-stone-200 p-4 space-y-3">
+                <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                  <div>
+                    <dt className="text-stone-500">Producto</dt>
+                    <dd className="font-medium">{line.product_name}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-stone-500">Variante</dt>
+                    <dd className="font-medium">{line.variant_name || '-'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-stone-500">Cantidad</dt>
+                    <dd className="font-medium">{line.quantity}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-stone-500">Precio unitario</dt>
+                    <dd className="font-medium">{formatCurrency(Number(line.unit_price))}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-stone-500">Total</dt>
+                    <dd className="font-medium">{formatCurrency(Number(line.total_price))}</dd>
+                  </div>
+                </dl>
+                {line.applied_print_specs && (
+                  <p className="text-sm text-stone-700">
+                    Print specs: {line.applied_print_specs.width_mm} ×{' '}
+                    {line.applied_print_specs.height_mm} mm, {line.applied_print_specs.dpi} DPI,{' '}
+                    {line.applied_print_specs.format.toUpperCase()},{' '}
+                    {line.applied_print_specs.background} background
+                  </p>
+                )}
+                {!data.printful_order_id && (
+                  <div className="space-y-2">
+                    <label
+                      htmlFor={`prompt-${line.id}`}
+                      className="block text-sm font-medium text-stone-700"
+                    >
+                      Instrucciones adicionales para IA
+                    </label>
+                    <textarea
+                      id={`prompt-${line.id}`}
+                      className="input w-full"
+                      rows={3}
+                      value={prompts[line.id] || ''}
+                      onChange={(e) =>
+                        setPrompts((prev) => ({ ...prev, [line.id]: e.target.value }))
+                      }
+                      placeholder="Ej: eliminar fondo, mejorar contraste..."
+                    />
+                    <Button
+                      onClick={() => handleProcessImage(line.id)}
+                      disabled={processing[line.id]}
+                    >
+                      {processing[line.id]
+                        ? 'Procesando con IA...'
+                        : 'Procesar imagen con IA'}
+                    </Button>
+                    {processErrors[line.id] && (
+                      <p className="text-sm text-red-600">{processErrors[line.id]}</p>
+                    )}
+                  </div>
+                )}
+                {line.processed_upload_prompt && (
+                  <div className="rounded-lg bg-stone-50 p-3 text-sm text-stone-700">
+                    <p className="font-medium">Prompt procesado</p>
+                    <p>{line.processed_upload_prompt}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         ) : (
           <p className="text-stone-500">Esta orden no tiene productos.</p>
         )}
@@ -215,28 +296,6 @@ function OrderDetailPage() {
                 </div>
               )}
               <div className="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-2">
-                  <label htmlFor="provider" className="text-sm font-medium text-stone-700">Proveedor IA:</label>
-                  <select
-                    id="provider"
-                    className="input"
-                    value={provider}
-                    onChange={(e) => setProvider(e.target.value as 'openai' | 'gemini')}
-                  >
-                    <option value="openai">OpenAI (DALL·E / gpt-image-2)</option>
-                    <option value="gemini">Google Gemini</option>
-                  </select>
-                </div>
-                <Button
-                  onClick={() => processImageMutation.mutate()}
-                  disabled={processImageMutation.isPending}
-                >
-                  {processImageMutation.isPending
-                    ? 'Procesando con IA...'
-                    : data.processed_upload_error
-                      ? 'Reintentar generación con IA'
-                      : 'Generar imagen limpia con IA'}
-                </Button>
                 {processedUpload && !data.mockup && (
                   <Button
                     variant="secondary"
@@ -245,11 +304,6 @@ function OrderDetailPage() {
                   >
                     {mockupMutation.isPending ? 'Generando vista previa...' : 'Generar vista previa del producto'}
                   </Button>
-                )}
-                {processImageMutation.isError && (
-                  <p className="text-sm text-red-600">
-                    Error: {processImageMutation.error?.message}
-                  </p>
                 )}
                 {mockupMutation.isError && (
                   <p className="text-sm text-red-600">

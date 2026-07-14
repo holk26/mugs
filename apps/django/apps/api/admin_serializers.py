@@ -85,6 +85,7 @@ class AdminOrderLineSerializer(serializers.ModelSerializer):
             'unit_price',
             'total_price',
             'applied_print_specs',
+            'processed_upload_prompt',
         ]
 
     def get_product_name(self, line: OrderLine) -> str:
