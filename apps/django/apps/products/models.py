@@ -1,4 +1,5 @@
 import uuid
+from django.core.validators import MinValueValidator
 from django.db import models
 
 
@@ -15,6 +16,33 @@ class Product(models.Model):
     tags = models.JSONField(default=list, blank=True)
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     compare_at_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    print_width_mm = models.PositiveIntegerField(
+        null=True, blank=True,
+        validators=[MinValueValidator(1)],
+        help_text='Print area width in mm (override global default)',
+    )
+    print_height_mm = models.PositiveIntegerField(
+        null=True, blank=True,
+        validators=[MinValueValidator(1)],
+        help_text='Print area height in mm (override global default)',
+    )
+    print_dpi = models.PositiveIntegerField(
+        default=0, blank=True,
+        validators=[MinValueValidator(1)],
+        help_text='Target DPI (0 = use global default)',
+    )
+    image_background = models.CharField(
+        max_length=20,
+        choices=[('white', 'White'), ('transparent', 'Transparent')],
+        default='', blank=True,
+        help_text='Processed image background (empty = use global default)',
+    )
+    image_format = models.CharField(
+        max_length=10,
+        choices=[('png', 'PNG'), ('jpeg', 'JPEG')],
+        default='', blank=True,
+        help_text='Output image format (empty = use global default)',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
