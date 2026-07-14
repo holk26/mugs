@@ -8,6 +8,9 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils import timezone
 
+from apps.orders.image_postprocess import postprocess_image
+from apps.orders.print_specs import get_print_specs
+
 
 class ImageCleanupError(Exception):
     pass
@@ -51,7 +54,22 @@ def _prompt():
     ))
 
 
-def cleanup_image_with_openai(file_field):
+def _build_prompt(operator_prompt=None, specs=None):
+    base = _prompt()
+    parts = [base]
+    if operator_prompt:
+        parts.append(f"Additional operator instructions: {operator_prompt}")
+    if specs:
+        parts.append(
+            f"Technical requirements: final output must be a {specs['format']} image "
+            f"with {specs['background']} background, {specs['dpi']} DPI, "
+            f"suitable for a {specs['width_mm']}x{specs['height_mm']} mm print area. "
+            "Preserve the original subject faithfully."
+        )
+    return "\n".join(parts)
+
+
+def cleanup_image_with_openai(file_field, operator_prompt=None, specs=None):
     from openai import OpenAI
 
     api_key = settings.OPENAI_API_KEY
@@ -67,7 +85,7 @@ def cleanup_image_with_openai(file_field):
     try:
         response = client.images.edit(
             image=image_bytes,
-            prompt=_prompt(),
+            prompt=_build_prompt(operator_prompt, specs),
             model=model,
             n=1,
             size='1024x1024',
@@ -88,7 +106,7 @@ def cleanup_image_with_openai(file_field):
     return base64.b64decode(b64), 'image/png'
 
 
-def cleanup_image_with_gemini(file_field):
+def cleanup_image_with_gemini(file_field, operator_prompt=None, specs=None):
     try:
         from google import genai
         from google.genai import types
@@ -110,7 +128,7 @@ def cleanup_image_with_gemini(file_field):
         response = client.models.generate_content(
             model=model,
             contents=[
-                _prompt(),
+                _build_prompt(operator_prompt, specs),
                 types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
             ],
             config=types.GenerateContentConfig(
@@ -132,24 +150,24 @@ def cleanup_image_with_gemini(file_field):
     raise ImageCleanupError('Gemini returned no image data')
 
 
-def cleanup_image_with_ai(file_field, provider=None):
+def cleanup_image_with_ai(file_field, provider=None, operator_prompt=None, specs=None):
     """Clean up an image using the configured or requested AI provider."""
     provider = provider or getattr(settings, 'AI_IMAGE_PROVIDER', 'openai').lower()
 
     if provider == 'gemini':
-        return cleanup_image_with_gemini(file_field)
+        return cleanup_image_with_gemini(file_field, operator_prompt=operator_prompt, specs=specs)
     if provider == 'openai':
-        return cleanup_image_with_openai(file_field)
+        return cleanup_image_with_openai(file_field, operator_prompt=operator_prompt, specs=specs)
 
     if settings.GEMINI_API_KEY and not settings.OPENAI_API_KEY:
-        return cleanup_image_with_gemini(file_field)
+        return cleanup_image_with_gemini(file_field, operator_prompt=operator_prompt, specs=specs)
     if settings.OPENAI_API_KEY:
-        return cleanup_image_with_openai(file_field)
+        return cleanup_image_with_openai(file_field, operator_prompt=operator_prompt, specs=specs)
 
     raise ImageCleanupError('No AI image provider is configured')
 
 
-def generate_cleaned_upload(order_line, provider=None):
+def generate_cleaned_upload(order_line, provider=None, operator_prompt=None):
     """Generate an AI-cleaned upload for an OrderLine and save it.
 
     Returns True on success, raises ImageCleanupError on failure.
@@ -157,13 +175,27 @@ def generate_cleaned_upload(order_line, provider=None):
     if not order_line.customer_upload:
         raise ImageCleanupError('Order line has no customer upload')
 
-    image_bytes, content_type = cleanup_image_with_ai(order_line.customer_upload, provider=provider)
+    specs = get_print_specs(order_line)
+    image_bytes, _content_type = cleanup_image_with_ai(
+        order_line.customer_upload,
+        provider=provider,
+        operator_prompt=operator_prompt,
+        specs=specs,
+    )
+    image_bytes, content_type = postprocess_image(image_bytes, specs)
     original_name = os.path.basename(order_line.customer_upload.name)
     root, _ = os.path.splitext(original_name)
-    filename = f"{root}_cleaned.png"
+    ext = specs['format'].lower()
+    filename = f"{root}_cleaned.{ext}"
 
     order_line.processed_upload.save(filename, ContentFile(image_bytes), save=False)
+    order_line.processed_upload_prompt = operator_prompt or ''
     order_line.processed_upload_generated_at = timezone.now()
     order_line.processed_upload_error = ''
-    order_line.save(update_fields=['processed_upload', 'processed_upload_generated_at', 'processed_upload_error'])
+    order_line.save(update_fields=[
+        'processed_upload',
+        'processed_upload_prompt',
+        'processed_upload_generated_at',
+        'processed_upload_error',
+    ])
     return True
