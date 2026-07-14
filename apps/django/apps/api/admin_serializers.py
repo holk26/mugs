@@ -4,6 +4,7 @@ from decimal import Decimal
 from rest_framework import serializers
 from apps.products.models import Product, ProductVariant, ProductMedia, Collection
 from apps.orders.models import Order, OrderLine
+from apps.orders.print_specs import get_print_specs
 from apps.printful.models import PrintfulSyncLog, PrintfulWebhookEvent
 from django.contrib.auth import get_user_model
 
@@ -72,10 +73,19 @@ class AdminOrderLineSerializer(serializers.ModelSerializer):
     variant_name = serializers.SerializerMethodField()
     unit_price = serializers.SerializerMethodField()
     total_price = serializers.SerializerMethodField()
+    applied_print_specs = serializers.SerializerMethodField()
 
     class Meta:
         model = OrderLine
-        fields = ['id', 'product_name', 'variant_name', 'quantity', 'unit_price', 'total_price']
+        fields = [
+            'id',
+            'product_name',
+            'variant_name',
+            'quantity',
+            'unit_price',
+            'total_price',
+            'applied_print_specs',
+        ]
 
     def get_product_name(self, line: OrderLine) -> str:
         if line.variant and line.variant.product:
@@ -92,6 +102,9 @@ class AdminOrderLineSerializer(serializers.ModelSerializer):
 
     def get_total_price(self, line: OrderLine) -> str:
         return str((line.price * line.quantity).quantize(Decimal('0.01')))
+
+    def get_applied_print_specs(self, obj):
+        return get_print_specs(obj)
 
 
 class AdminOrderSerializer(serializers.ModelSerializer):
