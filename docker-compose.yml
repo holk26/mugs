@@ -17,7 +17,9 @@ x-django-env: &django-env
   - PRINTFUL_WEBHOOK_SECRET=${PRINTFUL_WEBHOOK_SECRET:?PRINTFUL_WEBHOOK_SECRET is required}
   - PRINTFUL_BASE_URL=${PRINTFUL_BASE_URL:-https://api.printful.com}
   - PRINTFUL_AUTO_PUSH=${PRINTFUL_AUTO_PUSH:-False}
-  - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+  # El env de Dokploy usa PUBLIC_STRIPE_PUBLISHABLE_KEY; mapeamos al nombre
+  # que espera Django para no depender de un rename manual en la UI.
+  - STRIPE_PUBLISHABLE_KEY=${PUBLIC_STRIPE_PUBLISHABLE_KEY:-${STRIPE_PUBLISHABLE_KEY:-}}
   - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:?STRIPE_SECRET_KEY is required}
   - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:?STRIPE_WEBHOOK_SECRET is required}
   - RESEND_API_KEY=${RESEND_API_KEY:-}
@@ -165,7 +167,9 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:80/"]
+      # localhost se resuelve a ::1 en Alpine y nginx escucha solo IPv4,
+      # por eso usamos 127.0.0.1 para evitar "Connection refused".
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:80/"]
       interval: 15s
       timeout: 5s
       retries: 5

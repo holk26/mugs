@@ -22,7 +22,11 @@ FROM nginx:alpine
 RUN apk add --no-cache gettext
 COPY apps/dashboard/nginx.conf /etc/nginx/conf.d/default.conf
 COPY apps/dashboard/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 COPY --from=builder /app/apps/dashboard/dist /usr/share/nginx/html
+
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
 
 EXPOSE 80
 CMD ["/entrypoint.sh"]
