@@ -119,11 +119,12 @@ export async function createOrder(
   customer: { email: string; name: string },
   shippingAddress: ShippingAddress
 ): Promise<Order> {
+  // Note: prices are intentionally NOT sent — the server computes them from
+  // the variant, so the client can never manipulate what gets charged.
   const lines = items.map((item) => ({
     variant: item.variantId,
     title: `${item.title} — ${item.variantTitle}`,
     quantity: item.quantity,
-    price: item.price.toFixed(2),
   }));
 
   return fetchJson('/api/v1/orders/', {
@@ -158,11 +159,15 @@ export async function uploadDrawing(
   return response.json();
 }
 
-export async function createCheckoutSession(orderId: string): Promise<CheckoutSession> {
+export async function createCheckoutSession(orderId: string, email: string): Promise<CheckoutSession> {
   return fetchJson('/api/v1/payments/stripe/checkout/', {
     method: 'POST',
-    body: JSON.stringify({ order_id: orderId }),
+    body: JSON.stringify({ order_id: orderId, email }),
   });
+}
+
+export async function getOrderStatus(orderId: string): Promise<{ id: string; status: string }> {
+  return fetchJson(`/api/v1/orders/${orderId}/status/`);
 }
 
 export function dataUrlToFile(dataUrl: string, filename: string): File {

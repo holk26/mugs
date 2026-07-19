@@ -1,4 +1,5 @@
 import { X, Plus, Minus, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { useCart } from '../stores/cart';
 
 interface Props {
@@ -9,6 +10,26 @@ interface Props {
 
 export default function CartDrawer({ isOpen, onClose, inline }: Props) {
   const { items, updateQuantity, removeItem, total } = useCart();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const [storageWarning, setStorageWarning] = useState(false);
+
+  // Close with Escape and move focus into the dialog when it opens.
+  useEffect(() => {
+    if (inline || !isOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    dialogRef.current?.focus();
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, inline, onClose]);
+
+  // Surface localStorage quota failures (large drawing previews) to the user.
+  useEffect(() => {
+    const handleStorageError = () => setStorageWarning(true);
+    window.addEventListener('recuerdo:cart-storage-error', handleStorageError);
+    return () => window.removeEventListener('recuerdo:cart-storage-error', handleStorageError);
+  }, []);
 
   if (!isOpen && !inline) return null;
 
@@ -24,6 +45,13 @@ export default function CartDrawer({ isOpen, onClose, inline }: Props) {
           >
             <X className="h-5 w-5" />
           </button>
+        </div>
+      )}
+
+      {storageWarning && (
+        <div role="alert" className="mx-6 mt-4 rounded-xl bg-clay/10 px-4 py-3 text-xs font-medium text-earth">
+          Your browser storage is full, so your cart and drawing won't be kept if you
+          reload this page. Complete your order in this session.
         </div>
       )}
 
@@ -121,7 +149,14 @@ export default function CartDrawer({ isOpen, onClose, inline }: Props) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col bg-cream shadow-2xl">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Shopping cart"
+        tabIndex={-1}
+        className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col bg-cream shadow-2xl outline-none"
+      >
         {contents}
       </div>
     </>

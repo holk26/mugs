@@ -14,7 +14,10 @@ const safeLocalStorage = {
     try {
       localStorage.setItem(name, value);
     } catch {
-      // ignore quota/corruption errors
+      // Quota exceeded (large drawing previews) or storage unavailable: warn
+      // the user instead of silently losing the cart/drawing.
+      console.warn('Cart could not be persisted to localStorage (quota exceeded?)');
+      window.dispatchEvent(new CustomEvent('recuerdo:cart-storage-error'));
     }
   },
   removeItem: (name: string) => {

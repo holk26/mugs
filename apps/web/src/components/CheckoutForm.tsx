@@ -7,6 +7,7 @@ import {
   applyDiscount,
   removeDiscount,
   dataUrlToFile,
+  type Order,
   type OrderLine,
   type DiscountResult,
 } from '../lib/api';
@@ -31,7 +32,7 @@ export default function CheckoutForm() {
   const [name, setName] = useState('');
   const [address, setAddress] = useState<AddressFormData>(emptyAddress);
   const [step, setStep] = useState<'form' | 'payment'>('form');
-  const [orderId, setOrderId] = useState('');
+  const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -53,22 +54,40 @@ export default function CheckoutForm() {
     setError('');
     setLoading(true);
     try {
-      const order = await createOrder(items, { email, name }, {
-        name: name || email,
-        line1: address.address1,
-        city: address.city,
-        state: address.state_code,
-        postal_code: address.zip,
-        country: address.country_code,
-      });
-      setOrderId(order.id);
+      // Reuse the already-created order on retries so a failed drawing upload
+      // never duplicates the order.
+      let currentOrder = order;
+      if (!currentOrder) {
+        currentOrder = await createOrder(items, { email, name }, {
+          name: name || email,
+          line1: address.address1,
+          city: address.city,
+          state: address.state_code,
+          postal_code: address.zip,
+          country: address.country_code,
+        });
+        setOrder(currentOrder);
+      }
 
+      const failedUploads: string[] = [];
       for (const item of items) {
-        const line = order.lines.find((l: OrderLine) => l.variant === item.variantId);
-        if (line && item.uploadPreview && item.uploadName) {
-          const file = dataUrlToFile(item.uploadPreview, item.uploadName);
-          await uploadDrawing(order.id, line.id, file);
+        const line = currentOrder.lines.find((l: OrderLine) => l.variant === item.variantId);
+        if (line && item.uploadPreview && item.uploadName && !line.customer_upload) {
+          try {
+            const file = dataUrlToFile(item.uploadPreview, item.uploadName);
+            await uploadDrawing(currentOrder.id, line.id, file);
+          } catch {
+            failedUploads.push(item.title);
+          }
         }
+      }
+
+      if (failedUploads.length > 0) {
+        setError(
+          `The drawing upload failed for: ${failedUploads.join(', ')}. ` +
+            'Your order was saved — click "Continue to payment" again to retry the upload.'
+        );
+        return;
       }
 
       setStep('payment');
@@ -81,12 +100,12 @@ export default function CheckoutForm() {
 
   const handleApplyCoupon = async (e: FormEvent) => {
     e.preventDefault();
-    if (!couponCode.trim() || !orderId) return;
+    if (!couponCode.trim() || !order) return;
 
     setCouponLoading(true);
     setError('');
     try {
-      const result = await applyDiscount(orderId, couponCode.trim(), email);
+      const result = await applyDiscount(order.id, couponCode.trim(), email);
       setDiscount(result);
       setCouponCode('');
     } catch (err) {
@@ -98,11 +117,11 @@ export default function CheckoutForm() {
   };
 
   const handleRemoveCoupon = async () => {
-    if (!orderId) return;
+    if (!order) return;
     setCouponLoading(true);
     setError('');
     try {
-      await removeDiscount(orderId, email);
+      await removeDiscount(order.id, email);
       setDiscount(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not remove coupon');
@@ -112,12 +131,12 @@ export default function CheckoutForm() {
   };
 
   const handlePay = async () => {
-    if (!orderId) return;
+    if (!order) return;
 
     setLoading(true);
     setError('');
     try {
-      const session = await createCheckoutSession(orderId);
+      const session = await createCheckoutSession(order.id, email);
       window.location.href = session.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Payment failed');
@@ -152,22 +171,26 @@ export default function CheckoutForm() {
               <h2 className="text-lg font-semibold text-stone-900">Contact</h2>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-stone-700">Full name</label>
+                  <label htmlFor="checkout-name" className="block text-sm font-medium text-stone-700">Full name</label>
                   <input
+                    id="checkout-name"
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
+                    autoComplete="name"
                     className="mt-1 w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none transition focus:border-orange-700 focus:bg-white focus:ring-1 focus:ring-orange-700"
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-stone-700">Email</label>
+                  <label htmlFor="checkout-email" className="block text-sm font-medium text-stone-700">Email</label>
                   <input
+                    id="checkout-email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    autoComplete="email"
                     className="mt-1 w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm outline-none transition focus:border-orange-700 focus:bg-white focus:ring-1 focus:ring-orange-700"
                   />
                 </div>
@@ -224,7 +247,7 @@ export default function CheckoutForm() {
             <div className="rounded-2xl border border-stone-100 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-stone-900">Complete your payment</h2>
               <p className="mt-2 text-sm text-stone-600">
-                Order <span className="font-medium text-stone-900">{orderId}</span>
+                Order <span className="font-medium text-stone-900">{order?.id}</span>
               </p>
 
               <div className="mt-4 space-y-2 text-sm">
@@ -249,9 +272,10 @@ export default function CheckoutForm() {
 
               {!discount ? (
                 <form onSubmit={handleApplyCoupon} className="mt-6">
-                  <label className="block text-sm font-medium text-stone-700">Discount code</label>
+                  <label htmlFor="discount-code" className="block text-sm font-medium text-stone-700">Discount code</label>
                   <div className="mt-2 flex gap-2">
                     <input
+                      id="discount-code"
                       type="text"
                       value={couponCode}
                       onChange={(e) => setCouponCode(e.target.value)}

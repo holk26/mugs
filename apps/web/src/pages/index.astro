@@ -3,9 +3,16 @@ export const prerender = false;
 import Layout from '../layouts/Layout.astro';
 import ProductCard from '../components/ProductCard';
 import UploadMoment from '../components/UploadMoment';
-import { listProducts } from '../lib/api';
+import { listProducts, type Product } from '../lib/api';
 
-const { results: products } = await listProducts();
+let products: Product[] = [];
+let apiUnavailable = false;
+try {
+  ({ results: products } = await listProducts());
+} catch {
+  // Degrade gracefully instead of a 500 if the API is down.
+  apiUnavailable = true;
+}
 const heroProduct = products[0];
 const heroImage = heroProduct?.medias[0]?.url;
 ---
@@ -98,6 +105,11 @@ const heroImage = heroProduct?.medias[0]?.url;
         <ProductCard product={product} />
       ))}
     </div>
+    {apiUnavailable && (
+      <p class="mt-10 rounded-2xl bg-sand/60 px-6 py-4 text-center text-sm text-earth">
+        Our catalog is temporarily unavailable. Please check back in a few minutes.
+      </p>
+    )}
     <div class="mt-10 text-center md:hidden">
       <a href="/products" class="btn-secondary">View all mugs</a>
     </div>

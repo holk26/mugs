@@ -25,8 +25,9 @@ export function AddressForm({ value, onChange, disabled }: AddressFormProps) {
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-stone-700">Address</label>
+        <label htmlFor="address-line1" className="block text-sm font-medium text-stone-700">Address</label>
         <input
+          id="address-line1"
           type="text"
           value={value.address1}
           onChange={(e) => update('address1', e.target.value)}
@@ -39,8 +40,9 @@ export function AddressForm({ value, onChange, disabled }: AddressFormProps) {
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-stone-700">City</label>
+          <label htmlFor="address-city" className="block text-sm font-medium text-stone-700">City</label>
           <input
+            id="address-city"
             type="text"
             value={value.city}
             onChange={(e) => update('city', e.target.value)}
@@ -52,8 +54,9 @@ export function AddressForm({ value, onChange, disabled }: AddressFormProps) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700">State / Province</label>
+          <label htmlFor="address-state" className="block text-sm font-medium text-stone-700">State / Province</label>
           <input
+            id="address-state"
             type="text"
             value={value.state_code}
             onChange={(e) => update('state_code', e.target.value)}
@@ -67,8 +70,9 @@ export function AddressForm({ value, onChange, disabled }: AddressFormProps) {
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-stone-700">Postal code</label>
+          <label htmlFor="address-zip" className="block text-sm font-medium text-stone-700">Postal code</label>
           <input
+            id="address-zip"
             type="text"
             value={value.zip}
             onChange={(e) => update('zip', e.target.value)}
@@ -80,8 +84,9 @@ export function AddressForm({ value, onChange, disabled }: AddressFormProps) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-stone-700">Country</label>
+          <label htmlFor="address-country" className="block text-sm font-medium text-stone-700">Country</label>
           <select
+            id="address-country"
             value={value.country_code}
             onChange={(e) => update('country_code', e.target.value)}
             disabled={disabled}

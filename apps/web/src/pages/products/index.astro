@@ -2,9 +2,16 @@
 export const prerender = false;
 import Layout from '../../layouts/Layout.astro';
 import ProductCard from '../../components/ProductCard';
-import { listProducts } from '../../lib/api';
+import { listProducts, type Product } from '../../lib/api';
 
-const { results: products } = await listProducts();
+let products: Product[] = [];
+let apiUnavailable = false;
+try {
+  ({ results: products } = await listProducts());
+} catch {
+  // Degrade gracefully instead of a 500 if the API is down.
+  apiUnavailable = true;
+}
 ---
 
 <Layout title="Shop — Recuerdo Momentos">
@@ -14,10 +21,16 @@ const { results: products } = await listProducts();
       <h1 class="mt-3 font-serif text-4xl tracking-tight text-earth md:text-5xl">Our mugs</h1>
       <p class="mt-4 text-lg text-stone">Personalized with your child's own drawing.</p>
     </div>
-    <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-      {products.map((product) => (
-        <ProductCard product={product} />
-      ))}
-    </div>
+    {apiUnavailable ? (
+      <p class="mt-12 rounded-2xl bg-sand/60 px-6 py-4 text-center text-sm text-earth">
+        Our catalog is temporarily unavailable. Please check back in a few minutes.
+      </p>
+    ) : (
+      <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        {products.map((product) => (
+          <ProductCard product={product} />
+        ))}
+      </div>
+    )}
   </section>
 </Layout>

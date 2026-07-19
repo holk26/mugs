@@ -1,20 +1,50 @@
 ---
+export const prerender = false;
 import Layout from '../layouts/Layout.astro';
 import ClearCart from '../components/ClearCart';
+import { getOrderStatus } from '../lib/api';
 
 const orderId = Astro.url.searchParams.get('order');
+
+// Verify the payment server-side before confirming or clearing the cart —
+// visiting /thanks?order=x alone must never empty the cart.
+let paid = false;
+let checkFailed = false;
+if (orderId) {
+  try {
+    const order = await getOrderStatus(orderId);
+    paid = order.status === 'paid';
+  } catch {
+    checkFailed = true;
+  }
+}
 ---
 
 <Layout title="Thank you — Recuerdo Momentos">
-  {orderId && <ClearCart client:load />}
+  {paid && <ClearCart client:load />}
   <section class="section py-24 text-center md:py-32">
     <div class="mx-auto max-w-xl">
-      <h1 class="font-serif text-3xl tracking-tight text-earth md:text-4xl">
-        Thank you for your order!
-      </h1>
-      <p class="mt-6 text-lg leading-relaxed text-stone">
-        We will carefully digitize the drawing and send you updates by email.
-      </p>
+      {paid ? (
+        <>
+          <h1 class="font-serif text-3xl tracking-tight text-earth md:text-4xl">
+            Thank you for your order!
+          </h1>
+          <p class="mt-6 text-lg leading-relaxed text-stone">
+            We will carefully digitize the drawing and send you updates by email.
+          </p>
+        </>
+      ) : (
+        <>
+          <h1 class="font-serif text-3xl tracking-tight text-earth md:text-4xl">
+            We're confirming your payment
+          </h1>
+          <p class="mt-6 text-lg leading-relaxed text-stone">
+            {checkFailed
+              ? "We couldn't verify your order status right now. If you completed the payment, you'll receive a confirmation email shortly."
+              : 'Your payment has not been confirmed yet. This page updates once Stripe notifies us, and you will receive a confirmation email.'}
+          </p>
+        </>
+      )}
       {orderId && (
         <p class="mt-4 text-sm text-stone/80">
           Order reference: <span class="font-medium text-earth">{orderId}</span>
