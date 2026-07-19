@@ -1,5 +1,7 @@
 # Printful Integration Implementation Plan
 
+> **OBSOLETO**: describe la arquitectura Storecraft (apps/core), reemplazada por la migración a Django (2026-06-21). La integración Printful vigente está en apps/django/apps/printful/.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a server-side Printful integration that syncs the Printful catalog into Storecraft, provides live shipping rates, pushes paid orders to Printful, and reflects Printful order status updates back into Storecraft.

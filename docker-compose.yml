@@ -1,18 +1,62 @@
+# Variables requeridas (sin default inseguro; compose falla si faltan):
+#   DJANGO_SECRET_KEY, POSTGRES_PASSWORD, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
+#   PRINTFUL_API_TOKEN, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, PRINTFUL_WEBHOOK_SECRET
+# Ver .env.example para la lista completa.
+
+x-django-env: &django-env
+  - DEBUG=False
+  - SECRET_KEY=${DJANGO_SECRET_KEY:?DJANGO_SECRET_KEY is required}
+  - DATABASE_URL=postgres://${POSTGRES_USER:-mugs}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/${POSTGRES_DB:-mugs}
+  - CELERY_BROKER_URL=redis://redis:6379/0
+  - CELERY_RESULT_BACKEND=redis://redis:6379/0
+  - ALLOWED_HOSTS=backshop.app.moonsbow.com,django,localhost,127.0.0.1
+  - CORS_ALLOWED_ORIGINS=https://mugs.app.moonsbow.com,https://dashboar-back.app.moonsbow.com
+  - CSRF_TRUSTED_ORIGINS=https://backshop.app.moonsbow.com,https://dashboar-back.app.moonsbow.com
+  - PRINTFUL_API_TOKEN=${PRINTFUL_API_TOKEN:?PRINTFUL_API_TOKEN is required}
+  - PRINTFUL_STORE_ID=${PRINTFUL_STORE_ID:-}
+  - PRINTFUL_WEBHOOK_SECRET=${PRINTFUL_WEBHOOK_SECRET:?PRINTFUL_WEBHOOK_SECRET is required}
+  - PRINTFUL_BASE_URL=${PRINTFUL_BASE_URL:-https://api.printful.com}
+  - PRINTFUL_AUTO_PUSH=${PRINTFUL_AUTO_PUSH:-False}
+  - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+  - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:?STRIPE_SECRET_KEY is required}
+  - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:?STRIPE_WEBHOOK_SECRET is required}
+  - RESEND_API_KEY=${RESEND_API_KEY:-}
+  - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-orders@recuerdomomentos.com}
+  - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+  - OPENAI_IMAGE_MODEL=${OPENAI_IMAGE_MODEL:-gpt-image-2}
+  - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+  - GEMINI_IMAGE_MODEL=${GEMINI_IMAGE_MODEL:-gemini-2.5-flash-image}
+  - AI_IMAGE_PROVIDER=${AI_IMAGE_PROVIDER:-gemini}
+  - AI_IMAGE_PROMPT=${AI_IMAGE_PROMPT:-}
+  - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+  - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+  - MEDIA_ROOT=/app/media
+  - SITE_URL=${SITE_URL:-https://mugs.app.moonsbow.com}
+  - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID is required}
+  - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY is required}
+  - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME:-mugs-media}
+  - DRAWINGS_BUCKET_NAME=${DRAWINGS_BUCKET_NAME:-mugs-drawings}
+  # Public endpoint so presigned URLs for the private drawings bucket are
+  # reachable from browsers (MinIO is exposed through Traefik on this host).
+  - AWS_S3_ENDPOINT_URL=${AWS_S3_ENDPOINT_URL:-https://minio.app.moonsbow.com}
+  - AWS_S3_CUSTOM_DOMAIN=${AWS_S3_CUSTOM_DOMAIN:-minio.app.moonsbow.com/mugs-media}
+  - AWS_S3_VERIFY=${AWS_S3_VERIFY:-False}
+
 services:
   db:
     image: postgres:16-alpine
     container_name: mugs-db
     environment:
-      POSTGRES_USER: mugs
-      POSTGRES_PASSWORD: mugs
-      POSTGRES_DB: mugs
+      POSTGRES_USER: ${POSTGRES_USER:-mugs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-mugs}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - dokploy-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mugs -d mugs"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -20,6 +64,10 @@ services:
   redis:
     image: redis:7-alpine
     container_name: mugs-redis
+    # AOF persistence so the Celery queue survives restarts.
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
     networks:
       - dokploy-network
     restart: unless-stopped
@@ -34,45 +82,14 @@ services:
       context: .
       dockerfile: apps/django/Dockerfile
     container_name: mugs-django
-    environment:
-      - DEBUG=False
-      - SECRET_KEY=${DJANGO_SECRET_KEY:-dev-secret-key}
-      - DATABASE_URL=postgres://mugs:mugs@db:5432/mugs
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - ALLOWED_HOSTS=backshop.app.moonsbow.com,django,localhost,127.0.0.1
-      - CORS_ALLOWED_ORIGINS=https://mugs.app.moonsbow.com,https://dashboar-back.app.moonsbow.com,http://localhost:4321,http://localhost:5173
-      - PRINTFUL_API_TOKEN=${PRINTFUL_API_TOKEN}
-      - PRINTFUL_STORE_ID=${PRINTFUL_STORE_ID:-}
-      - PRINTFUL_WEBHOOK_SECRET=${PRINTFUL_WEBHOOK_SECRET:-}
-      - PRINTFUL_BASE_URL=${PRINTFUL_BASE_URL:-https://api.printful.com}
-      - PRINTFUL_AUTO_PUSH=${PRINTFUL_AUTO_PUSH:-False}
-      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
-      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
-      - RESEND_API_KEY=${RESEND_API_KEY:-}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-orders@recuerdomomentos.com}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - OPENAI_IMAGE_MODEL=${OPENAI_IMAGE_MODEL:-gpt-image-2}
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - GEMINI_IMAGE_MODEL=${GEMINI_IMAGE_MODEL:-gemini-2.5-flash-image}
-      - AI_IMAGE_PROVIDER=${AI_IMAGE_PROVIDER:-gemini}
-      - AI_IMAGE_PROMPT=${AI_IMAGE_PROMPT:-}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
-      - MEDIA_ROOT=/app/media
-      - SITE_URL=${SITE_URL:-https://mugs.app.moonsbow.com}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-mugs}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-mugs-secret}
-      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME:-mugs-media}
-      - AWS_S3_ENDPOINT_URL=${AWS_S3_ENDPOINT_URL:-http://minio:9000}
-      - AWS_S3_CUSTOM_DOMAIN=${AWS_S3_CUSTOM_DOMAIN:-minio.app.moonsbow.com/mugs-media}
-      - AWS_S3_VERIFY=${AWS_S3_VERIFY:-False}
-    ports:
-      - "8080:8080"
+    environment: *django-env
+    # No host ports published: Traefik reaches the service through the
+    # internal network, so the API is never exposed over plain HTTP.
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - media-data:/app/media
     networks:
@@ -95,7 +112,7 @@ services:
       - "traefik.http.routers.mugs-media.rule=Host(`backshop.app.moonsbow.com`) && PathPrefix(`/media/`)"
       - "traefik.http.routers.mugs-media.entrypoints=websecure"
       - "traefik.http.routers.mugs-media.tls=true"
-      - "traefik.http.routers.mugs-media.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.mugs-media.tls.certResolver=letsencrypt"
       - "traefik.http.routers.mugs-media.service=mugs-media-service"
       - "traefik.http.services.mugs-media-service.loadbalancer.server.port=8080"
 
@@ -105,19 +122,24 @@ services:
       dockerfile: Dockerfile
       args:
         - PUBLIC_DJANGO_API_URL=https://backshop.app.moonsbow.com
-        - PUBLIC_STRIPE_PUBLISHABLE_KEY=${PUBLIC_STRIPE_PUBLISHABLE_KEY}
     container_name: mugs-web
     environment:
       - PUBLIC_DJANGO_API_URL=https://backshop.app.moonsbow.com
       - HOST=0.0.0.0
       - PORT=4321
-      - PRINTFUL_WEBHOOK_SECRET=${PRINTFUL_WEBHOOK_SECRET:-}
-      - PUBLIC_STRIPE_PUBLISHABLE_KEY=${PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+      - PRINTFUL_WEBHOOK_SECRET=${PRINTFUL_WEBHOOK_SECRET:?PRINTFUL_WEBHOOK_SECRET is required}
     networks:
       - dokploy-network
     depends_on:
-      - django
+      django:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4321/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=dokploy-network"
@@ -139,8 +161,15 @@ services:
     networks:
       - dokploy-network
     depends_on:
-      - django
+      django:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:80/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=dokploy-network"
@@ -156,40 +185,12 @@ services:
       dockerfile: apps/django/Dockerfile
     container_name: mugs-celery
     command: celery -A config worker -l info
-    environment:
-      - DATABASE_URL=postgres://mugs:mugs@db:5432/mugs
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - SECRET_KEY=${DJANGO_SECRET_KEY:-dev-secret-key}
-      - DEBUG=False
-      - ALLOWED_HOSTS=backshop.app.moonsbow.com,django,localhost,127.0.0.1
-      - CORS_ALLOWED_ORIGINS=https://mugs.app.moonsbow.com,https://dashboar-back.app.moonsbow.com,http://localhost:4321,http://localhost:5173
-      - PRINTFUL_API_TOKEN=${PRINTFUL_API_TOKEN}
-      - PRINTFUL_STORE_ID=${PRINTFUL_STORE_ID:-}
-      - PRINTFUL_WEBHOOK_SECRET=${PRINTFUL_WEBHOOK_SECRET:-}
-      - PRINTFUL_BASE_URL=${PRINTFUL_BASE_URL:-https://api.printful.com}
-      - PRINTFUL_AUTO_PUSH=${PRINTFUL_AUTO_PUSH:-False}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-mugs}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-mugs-secret}
-      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME:-mugs-media}
-      - AWS_S3_ENDPOINT_URL=${AWS_S3_ENDPOINT_URL:-http://minio:9000}
-      - AWS_S3_CUSTOM_DOMAIN=${AWS_S3_CUSTOM_DOMAIN:-minio.app.moonsbow.com/mugs-media}
-      - AWS_S3_VERIFY=${AWS_S3_VERIFY:-False}
-      - RESEND_API_KEY=${RESEND_API_KEY:-}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-orders@recuerdomomentos.com}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - OPENAI_IMAGE_MODEL=${OPENAI_IMAGE_MODEL:-gpt-image-2}
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - GEMINI_IMAGE_MODEL=${GEMINI_IMAGE_MODEL:-gemini-2.5-flash-image}
-      - AI_IMAGE_PROVIDER=${AI_IMAGE_PROVIDER:-gemini}
-      - AI_IMAGE_PROMPT=${AI_IMAGE_PROMPT:-}
-      - SITE_URL=${SITE_URL:-https://mugs.app.moonsbow.com}
-      - MEDIA_ROOT=/app/media
+    environment: *django-env
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - dokploy-network
     restart: unless-stopped
@@ -201,11 +202,11 @@ services:
       start_period: 30s
 
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
     container_name: mugs-minio
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-mugs}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-mugs-secret}
+      MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID is required}
+      MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY is required}
     command: server /data --console-address ":9001"
     volumes:
       - minio-data:/data
@@ -227,23 +228,26 @@ services:
       - "traefik.http.services.mugs-minio-service.loadbalancer.server.port=9000"
 
   minio-init:
-    image: minio/mc:latest
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
     container_name: mugs-minio-init
     depends_on:
-      - minio
+      minio:
+        condition: service_healthy
     entrypoint: >
       /bin/sh -c "
         echo 'Waiting for MinIO...';
         sleep 5;
-        mc alias set local http://minio:9000 $${MINIO_ROOT_USER:-mugs} $${MINIO_ROOT_PASSWORD:-mugs-secret};
-        mc mb local/$${AWS_STORAGE_BUCKET_NAME:-mugs-media} --ignore-existing;
-        mc anonymous set download local/$${AWS_STORAGE_BUCKET_NAME:-mugs-media};
-        echo 'MinIO bucket ready';
+        mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
+        mc mb local/$${AWS_STORAGE_BUCKET_NAME} --ignore-existing;
+        mc anonymous set download local/$${AWS_STORAGE_BUCKET_NAME};
+        mc mb local/$${DRAWINGS_BUCKET_NAME} --ignore-existing;
+        echo 'MinIO buckets ready (public media + private drawings)';
       "
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-mugs}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-mugs-secret}
+      MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID is required}
+      MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY is required}
       AWS_STORAGE_BUCKET_NAME: ${AWS_STORAGE_BUCKET_NAME:-mugs-media}
+      DRAWINGS_BUCKET_NAME: ${DRAWINGS_BUCKET_NAME:-mugs-drawings}
     networks:
       - dokploy-network
     restart: on-failure
@@ -251,6 +255,7 @@ services:
 volumes:
   postgres-data:
   media-data:
+  redis-data:
   minio-data:
 
 networks:

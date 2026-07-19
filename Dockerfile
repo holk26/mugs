@@ -3,7 +3,7 @@ FROM node:22-slim
 
 WORKDIR /app
 
-RUN npm install -g pnpm
+RUN npm install -g pnpm@11.9.0
 
 # Evitar prompts interactivos de pnpm en builds sin TTY
 ENV CI=true
@@ -11,7 +11,6 @@ ENV CI=true
 # Copiar manifiestos del workspace para aprovechar la caché de dependencias
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/web/package.json apps/web/package.json
-COPY packages/api-client/package.json packages/api-client/package.json
 
 RUN pnpm install --frozen-lockfile
 
@@ -20,9 +19,7 @@ COPY . .
 
 # URL base de la API (must be public for browser requests)
 ARG PUBLIC_DJANGO_API_URL=https://backshop.app.moonsbow.com
-ARG PUBLIC_STRIPE_PUBLISHABLE_KEY
 ENV PUBLIC_DJANGO_API_URL=${PUBLIC_DJANGO_API_URL}
-ENV PUBLIC_STRIPE_PUBLISHABLE_KEY=${PUBLIC_STRIPE_PUBLISHABLE_KEY}
 ENV HOST=0.0.0.0
 ENV PORT=4321
 

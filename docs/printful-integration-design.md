@@ -1,5 +1,7 @@
 # Printful Integration Design
 
+> **OBSOLETO**: describe la arquitectura Storecraft (apps/core), reemplazada por la migración a Django (2026-06-21). La integración Printful vigente está en apps/django/apps/printful/.
+
 ## Status
 
 Approved for implementation.

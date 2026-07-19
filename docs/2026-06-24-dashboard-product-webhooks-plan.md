@@ -1,5 +1,7 @@
 # Dashboard Product Management + Printful Webhooks Implementation Plan
 
+> **ESTADO: IMPLEMENTADO (verificado 2026-07-19).** Todos los archivos y cambios descritos existen en el código: API layer (`src/api/variants.ts`, `media.ts`, `collections.ts`, `printful-webhooks.ts`), componentes (`Tabs`, `TagsInput`, `CollectionSelect`, `ProductGeneralTab`, `ProductVariantsTab`, `ProductMediaTab`, `PrintfulWebhookTable`, `WebhookPayloadModal`), ruta `src/routes/printful.webhooks.tsx`, sidebar, schema con tags/collections, tests (Task 9) y el backend Django (`AdminCollectionViewSet` en `apps/django/apps/api/`). Los checkboxes se dejan sin marcar porque los pasos de commit/push/deploy no son verificables desde el código.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add product variant, media, tags and collection editing to the dashboard, plus a page to inspect Printful webhook events.
