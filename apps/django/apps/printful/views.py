@@ -23,9 +23,9 @@ def printful_webhook(request):
     except json.JSONDecodeError:
         return JsonResponse({'detail': 'Invalid JSON.'}, status=400)
 
-    PrintfulWebhookEvent.objects.create(payload=data)
-
     event_type = data.get('type', '')
+    event = PrintfulWebhookEvent.objects.create(event_type=event_type, payload=data)
+
     printful_data = data.get('data', {})
     printful_order_id = str(printful_data.get('order', {}).get('id', ''))
 
@@ -33,6 +33,8 @@ def printful_webhook(request):
         try:
             order = Order.objects.get(printful_order_id=printful_order_id)
         except Order.DoesNotExist:
+            event.processed = True
+            event.save(update_fields=['processed'])
             return JsonResponse({'status': 'ignored'})
 
         pf_status = printful_data.get('order', {}).get('status', '')
@@ -42,4 +44,6 @@ def printful_webhook(request):
             order.printful_status = pf_status
             order.save(update_fields=['status', 'printful_status'])
 
+    event.processed = True
+    event.save(update_fields=['processed'])
     return JsonResponse({'status': 'ok'})

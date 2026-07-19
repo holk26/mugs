@@ -7,11 +7,25 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from apps.payments.models import PaymentGateway
+from apps.payments.models import PaymentGateway, WebhookEvent
 from apps.orders.models import Order
 from apps.discounts.models import DiscountCode, DiscountUsage
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
+
+
+def _order_belongs_to_request(order, request):
+    """Verify the requester owns the order.
+
+    Authenticated users must match the order's user (or its customer email for
+    guest orders they claim). Guests must provide the order's customer email.
+    """
+    if request.user.is_authenticated:
+        if order.user_id:
+            return order.user_id == request.user.id
+        return bool(request.user.email) and request.user.email.lower() == (order.customer_email or '').lower()
+    email = (request.data.get('email') or '').strip().lower()
+    return bool(email) and email == (order.customer_email or '').lower()
 
 
 @api_view(['GET'])
@@ -29,6 +43,10 @@ def payment_gateways(request):
 def create_checkout_session(request):
     order_id = request.data.get('order_id')
     order = get_object_or_404(Order, id=order_id)
+
+    if not _order_belongs_to_request(order, request):
+        # 404 instead of 403 to avoid leaking the existence of the order.
+        return Response({'detail': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
 
     if order.status != 'pending':
         return Response({'detail': 'Order is not pending.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -50,7 +68,9 @@ def create_checkout_session(request):
         {
             'price_data': {
                 'currency': currency.lower(),
-                'unit_amount': int(line.price * line.quantity * 100),
+                # unit_amount is the price of ONE unit; Stripe multiplies it by
+                # quantity below. Do not multiply by line.quantity here.
+                'unit_amount': int(line.price * 100),
                 'product_data': {
                     'name': line.title,
                 },
@@ -82,7 +102,7 @@ def create_checkout_session(request):
         'cancel_url': cancel_url,
         'metadata': {'order_id': str(order.id)},
         'shipping_address_collection': {
-            'allowed_countries': ['US', 'CA', 'MX', 'ES', 'AR', 'CL', 'CO', 'PE', 'UY', 'EC', 'BO', 'VE', 'PA', 'CR', 'GT', 'SV', 'HN', 'NI', 'DO', 'PR'],
+            'allowed_countries': settings.STRIPE_CHECKOUT_SHIPPING_COUNTRIES,
         },
     }
 
@@ -129,6 +149,18 @@ def stripe_webhook(request):
     # Normalize the whole payload to plain dicts so the rest of the view can
     # use `.get()` safely, both in production and in unit tests.
     event = stripe._util.convert_to_dict(event)
+
+    # Idempotency: Stripe retries webhooks, so record processed event ids and
+    # acknowledge duplicates without reprocessing them.
+    event_id = event.get('id')
+    if event_id:
+        with transaction.atomic():
+            _, created = WebhookEvent.objects.get_or_create(
+                event_id=event_id,
+                defaults={'event_type': event.get('type', ''), 'payload': event},
+            )
+        if not created:
+            return Response({'status': 'duplicate'})
 
     order_id = None
     if event['type'] == 'checkout.session.completed':

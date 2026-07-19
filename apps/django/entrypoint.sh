@@ -15,4 +15,4 @@ python manage.py collectstatic --noinput
 python manage.py migrate --noinput
 python manage.py ensure_admin
 
-exec gunicorn config.wsgi:application --bind 0.0.0.0:8080 --workers 4
+exec gunicorn config.wsgi:application --bind 0.0.0.0:8080 --workers 4 --timeout 120 --graceful-timeout 30

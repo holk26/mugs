@@ -16,9 +16,10 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        # ProductListSerializer always serializes medias; prefetch them to
+        # avoid an N+1 query per product on the public listing.
+        queryset = queryset.prefetch_related('medias')
         expand = self.request.query_params.get('expand', '')
-        if 'medias' in expand:
-            queryset = queryset.prefetch_related('medias')
         if self.action == 'retrieve' or 'variants' in expand:
             queryset = queryset.prefetch_related('variants')
         return queryset

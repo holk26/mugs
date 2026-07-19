@@ -4,8 +4,7 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from apps.core.email import send_order_confirmation_email, send_order_update_email
 from apps.orders.models import Order
-from apps.printful.sync import push_order
-from apps.orders.tasks import process_order_images
+from apps.orders.tasks import process_order_images, push_order_to_printful
 
 
 @receiver(pre_save, sender=Order)
@@ -34,7 +33,7 @@ def handle_order_paid(sender, instance, created, **kwargs):
                 and settings.PRINTFUL_API_TOKEN
                 and not instance.printful_order_id
             ):
-                push_order(instance)
+                push_order_to_printful.delay(instance.id)
             send_order_confirmation_email(instance)
 
         transaction.on_commit(_on_commit)

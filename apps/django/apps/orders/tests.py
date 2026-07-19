@@ -62,28 +62,36 @@ class TestDrawingUpload:
 
     def test_upload_drawing(self):
         url = reverse('order-upload-drawing', kwargs={'pk': self.order.id, 'line_id': self.line.id})
-        image = BytesIO(b'fake-image-data')
-        image.content_type = 'image/png'
         response = self.client.post(
             url,
-            {'file': image},
+            {'file': _make_image_file()},
             format='multipart',
-            HTTP_CONTENT_DISPOSITION='attachment; filename="drawing.png"',
         )
         assert response.status_code == 200
         self.line.refresh_from_db()
         assert self.line.customer_upload
 
+    def test_upload_drawing_rejects_non_image(self):
+        url = reverse('order-upload-drawing', kwargs={'pk': self.order.id, 'line_id': self.line.id})
+        fake = BytesIO(b'fake-image-data')
+        fake.content_type = 'image/png'
+        response = self.client.post(
+            url,
+            {'file': fake},
+            format='multipart',
+            HTTP_CONTENT_DISPOSITION='attachment; filename="drawing.png"',
+        )
+        assert response.status_code == 400
+        self.line.refresh_from_db()
+        assert not self.line.customer_upload
+
     def test_upload_drawing_creates_media_root(self, tmp_path):
         with override_settings(MEDIA_ROOT=str(tmp_path)):
             url = reverse('order-upload-drawing', kwargs={'pk': self.order.id, 'line_id': self.line.id})
-            image = BytesIO(b'fake-image-data')
-            image.content_type = 'image/png'
             response = self.client.post(
                 url,
-                {'file': image},
+                {'file': _make_image_file()},
                 format='multipart',
-                HTTP_CONTENT_DISPOSITION='attachment; filename="drawing.png"',
             )
             assert response.status_code == 200
             self.line.refresh_from_db()
@@ -171,10 +179,10 @@ def test_paid_order_does_not_auto_push_when_disabled():
         with patch('apps.orders.signals.transaction.on_commit') as mock_on_commit:
             mock_on_commit.side_effect = lambda func: func()
             with patch('apps.orders.signals.process_order_images'):
-                with patch('apps.orders.signals.push_order') as mock_push:
+                with patch('apps.orders.signals.push_order_to_printful') as mock_push:
                     order.status = 'paid'
                     order.save()
-                    mock_push.assert_not_called()
+                    mock_push.delay.assert_not_called()
 
 
 @pytest.mark.django_db
@@ -190,10 +198,10 @@ def test_paid_order_auto_push_when_enabled():
         with patch('apps.orders.signals.transaction.on_commit') as mock_on_commit:
             mock_on_commit.side_effect = lambda func: func()
             with patch('apps.orders.signals.process_order_images'):
-                with patch('apps.orders.signals.push_order') as mock_push:
+                with patch('apps.orders.signals.push_order_to_printful') as mock_push:
                     order.status = 'paid'
                     order.save()
-                    mock_push.assert_called_once_with(order)
+                    mock_push.delay.assert_called_once_with(order.id)
 
 
 def _make_image_file(name='drawing.png', color=(255, 0, 0)):

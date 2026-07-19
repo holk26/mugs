@@ -2,6 +2,7 @@ import uuid
 from django.db import models
 from django.conf import settings
 from apps.products.models import ProductVariant
+from apps.orders.storage import customer_upload_storage
 
 
 class Order(models.Model):
@@ -52,6 +53,7 @@ class OrderLine(models.Model):
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     customer_upload = models.FileField(
         upload_to='drawings/%Y/%m/%d/',
+        storage=customer_upload_storage,
         blank=True,
         null=True,
         help_text='Customer drawing to be printed on the mug'

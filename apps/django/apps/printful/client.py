@@ -1,9 +1,13 @@
+import time
+
 import requests
 from django.conf import settings
 from .exceptions import PrintfulError
 
 
 DEFAULT_BASE_URL = 'https://api.printful.com'
+MAX_RETRIES = 3
+RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 
 
 class PrintfulClient:
@@ -25,13 +29,31 @@ class PrintfulClient:
 
     def _request(self, path, method='GET', body=None):
         url = f'{self.base_url}{path}'
-        response = requests.request(
-            method,
-            url,
-            headers=self.headers,
-            json=body,
-            timeout=30
-        )
+        response = None
+        for attempt in range(MAX_RETRIES + 1):
+            try:
+                response = requests.request(
+                    method,
+                    url,
+                    headers=self.headers,
+                    json=body,
+                    timeout=30
+                )
+            except requests.RequestException as exc:
+                if attempt >= MAX_RETRIES:
+                    raise PrintfulError(f'Printful request failed: {exc}')
+                time.sleep(2 ** attempt)
+                continue
+
+            if response.status_code not in RETRYABLE_STATUS_CODES or attempt >= MAX_RETRIES:
+                break
+
+            retry_after = response.headers.get('X-PF-Retry-After') or response.headers.get('Retry-After')
+            try:
+                delay = min(float(retry_after), 60) if retry_after else 2 ** attempt
+            except ValueError:
+                delay = 2 ** attempt
+            time.sleep(delay)
 
         try:
             data = response.json()
@@ -67,6 +89,3 @@ class PrintfulClient:
 
     def get_order(self, order_id):
         return self._request(f'/orders/{order_id}')
-
-    def confirm_order(self, order_id):
-        return self._request(f'/orders/{order_id}/confirm', method='POST')

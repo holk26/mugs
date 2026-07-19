@@ -44,3 +44,35 @@ def process_order_images(self, order_id):
             return {'order_id': str(order_id), 'results': results, 'status': 'max_retries_exceeded'}
 
     return {'order_id': str(order_id), 'results': results}
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=120)
+def push_order_to_printful(self, order_id):
+    """Push a paid order to Printful asynchronously.
+
+    Runs outside the Stripe webhook request so a Printful outage does not
+    turn into 500s (and retries/double charges) on an already-paid order.
+    """
+    from apps.printful.sync import push_order
+
+    logger.info('Pushing order %s to Printful', order_id)
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        logger.warning('Order %s not found', order_id)
+        return {'error': 'Order not found'}
+
+    if order.printful_order_id or order.status != 'paid':
+        return {'order_id': str(order_id), 'status': 'skipped'}
+
+    try:
+        printful_order_id = push_order(order)
+    except Exception as exc:
+        logger.exception('Printful push failed for order %s', order_id)
+        try:
+            raise self.retry(exc=exc)
+        except MaxRetriesExceededError:
+            logger.error('Max retries exceeded pushing order %s to Printful', order_id)
+            return {'order_id': str(order_id), 'status': 'max_retries_exceeded'}
+
+    return {'order_id': str(order_id), 'printful_order_id': printful_order_id}

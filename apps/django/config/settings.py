@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -9,6 +10,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Dev fallback below is only for local development. Override SECRET_KEY in production.
 SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key')
 DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 'yes')
+
+if not DEBUG:
+    if not SECRET_KEY or SECRET_KEY == 'dev-secret-key':
+        raise ImproperlyConfigured(
+            'SECRET_KEY must be set to a secure value when DEBUG is False.'
+        )
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost').split(',')
 
@@ -145,12 +152,26 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:4321,http://localhost:5173').split(',')
 CORS_ALLOW_CREDENTIALS = True
 
+# HTTPS hardening. TLS is terminated by Traefik, which forwards the original
+# scheme via X-Forwarded-Proto.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+    if origin.strip()
+]
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30  # 30 days
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
 PRINTFUL_API_TOKEN = os.environ.get('PRINTFUL_API_TOKEN', '')
 PRINTFUL_STORE_ID = os.environ.get('PRINTFUL_STORE_ID', '')
 PRINTFUL_WEBHOOK_SECRET = os.environ.get('PRINTFUL_WEBHOOK_SECRET', '')
 PRINTFUL_BASE_URL = os.environ.get('PRINTFUL_BASE_URL', 'https://api.printful.com')
 PRINTFUL_AUTO_PUSH = os.environ.get('PRINTFUL_AUTO_PUSH', 'False').lower() in ('1', 'true', 'yes', 'on')
-
 # Printful print specifications (defaults for sublimation mug)
 PRINTFUL_PRINT_WIDTH_MM = int(os.environ.get('PRINTFUL_PRINT_WIDTH_MM', '240'))
 PRINTFUL_PRINT_HEIGHT_MM = int(os.environ.get('PRINTFUL_PRINT_HEIGHT_MM', '92'))
@@ -172,6 +193,14 @@ STRIPE_CHECKOUT_SHIPPING_COUNTRIES = [
     ).split(",")
     if c.strip()
 ]
+
+if not DEBUG:
+    for _secret_name in ('STRIPE_WEBHOOK_SECRET', 'PRINTFUL_WEBHOOK_SECRET'):
+        if not globals()[_secret_name]:
+            raise ImproperlyConfigured(
+                f'{_secret_name} must be set when DEBUG is False.'
+            )
+    del _secret_name
 
 # OpenAI
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
@@ -216,6 +245,8 @@ CELERY_RESULT_SERIALIZER = 'json'
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', 'mugs')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', 'mugs-secret')
 AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME', 'mugs-media')
+# Private bucket for original customer drawings (see apps.orders.storage).
+DRAWINGS_BUCKET_NAME = os.environ.get('DRAWINGS_BUCKET_NAME', 'mugs-drawings')
 AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL', '')
 AWS_S3_CUSTOM_DOMAIN = os.environ.get('AWS_S3_CUSTOM_DOMAIN', '')
 AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
