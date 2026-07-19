@@ -3,11 +3,10 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Enable pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
 
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY apps/dashboard/package.json ./apps/dashboard/package.json
-COPY packages ./packages
 
 RUN pnpm install --frozen-lockfile
 

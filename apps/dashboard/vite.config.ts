@@ -25,7 +25,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    sourcemap: 'hidden',
     target: 'es2022',
   },
 });
