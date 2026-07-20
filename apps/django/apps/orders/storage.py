@@ -14,6 +14,8 @@ def customer_upload_storage():
 
         return S3Boto3Storage(
             bucket_name=settings.DRAWINGS_BUCKET_NAME,
+            endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+            custom_domain=None,
             default_acl='private',
             querystring_auth=True,
             file_overwrite=False,
