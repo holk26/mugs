@@ -33,9 +33,9 @@ function ProductsPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-stone-900">Productos</h1>
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-bold text-stone-900 md:text-2xl">Productos</h1>
         <Link to="/products/new">
           <Button className="gap-2"><Plus className="h-4 w-4" /> Nuevo producto</Button>
         </Link>

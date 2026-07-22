@@ -26,8 +26,8 @@ function OrdersPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-stone-900">Órdenes</h1>
+    <div className="space-y-4 md:space-y-6">
+      <h1 className="text-xl font-bold text-stone-900 md:text-2xl">Órdenes</h1>
       <DataTable columns={columns} data={data?.results || []} keyExtractor={(o) => o.id} isLoading={isLoading} />
     </div>
   );

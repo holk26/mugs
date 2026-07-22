@@ -102,7 +102,7 @@ function OrderDetailPage() {
         <OrderStatusBadge status={data.status} />
       </div>
 
-      <Card>
+      <Card className="p-4 md:p-6">
         <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-stone-500">Cliente</dt>
@@ -129,7 +129,7 @@ function OrderDetailPage() {
         </dl>
       </Card>
 
-      <Card>
+      <Card className="p-4 md:p-6">
         <h2 className="mb-4 text-lg font-semibold">Productos</h2>
         {data.lines && data.lines.length > 0 ? (
           <div className="space-y-4">
@@ -225,9 +225,9 @@ function OrderDetailPage() {
       </Card>
 
       {upload && (
-        <Card>
+        <Card className="p-4 md:p-6">
           <h2 className="mb-4 text-lg font-semibold">Archivo del cliente</h2>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <p className="mb-2 text-sm font-medium text-stone-700">Original</p>
               <img
@@ -295,7 +295,7 @@ function OrderDetailPage() {
                   <p>{data.processed_upload_error}</p>
                 </div>
               )}
-              <div className="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                 {processedUpload && !data.mockup && (
                   <Button
                     variant="secondary"
@@ -316,7 +316,7 @@ function OrderDetailPage() {
         </Card>
       )}
 
-      <Card>
+      <Card className="p-4 md:p-6">
         <h2 className="mb-4 text-lg font-semibold">Dirección de envío</h2>
         {data.shipping_address ? (
           <address className="grid gap-1 text-sm not-italic">
@@ -339,7 +339,7 @@ function OrderDetailPage() {
         )}
       </Card>
 
-      <Card>
+      <Card className="p-4 md:p-6">
         <h2 className="mb-4 text-lg font-semibold">Printful</h2>
         <div className="space-y-3">
           <div className="text-sm">
@@ -379,7 +379,7 @@ function OrderDetailPage() {
         </div>
       </Card>
 
-      <Card>
+      <Card className="p-4 md:p-6">
         <h2 className="mb-4 text-lg font-semibold">Cambiar estado</h2>
         <div className="flex flex-wrap gap-2">
           {statuses.map((s) => (

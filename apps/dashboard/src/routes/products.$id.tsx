@@ -41,13 +41,13 @@ function EditProductPage() {
           <TabsTrigger value="variants">Variantes</TabsTrigger>
           <TabsTrigger value="media">Medios</TabsTrigger>
         </TabsList>
-        <TabsContent value="general">
+        <TabsContent value="general" className="pt-4 md:pt-6">
           <ProductGeneralTab product={product} onSubmit={(values) => mutation.mutate(values)} isLoading={mutation.isPending} />
         </TabsContent>
-        <TabsContent value="variants">
+        <TabsContent value="variants" className="pt-4 md:pt-6">
           <ProductVariantsTab productId={id} />
         </TabsContent>
-        <TabsContent value="media">
+        <TabsContent value="media" className="pt-4 md:pt-6">
           <ProductMediaTab productId={id} />
         </TabsContent>
       </Tabs>

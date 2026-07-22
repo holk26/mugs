@@ -31,8 +31,8 @@ export function LoginPage() {
   });
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-stone-100 p-4">
-      <div className="w-full max-w-sm card">
+    <div className="flex min-h-screen items-center justify-center px-4 py-12 bg-stone-50">
+      <div className="w-full max-w-md space-y-6 rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
         <h1 className="mb-6 text-2xl font-bold text-stone-900">Admin Recuerdo Momentos</h1>
         <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
           <div>

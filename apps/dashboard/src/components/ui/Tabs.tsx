@@ -30,7 +30,7 @@ export function Tabs({ defaultValue, children, className }: TabsProps) {
 }
 
 export function TabsList({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('flex border-b border-stone-200', className)}>{children}</div>;
+  return <div className={cn('flex overflow-x-auto whitespace-nowrap border-b border-stone-200 pb-1', className)}>{children}</div>;
 }
 
 interface TabsTriggerProps {
@@ -58,10 +58,11 @@ export function TabsTrigger({ value, children }: TabsTriggerProps) {
 interface TabsContentProps {
   value: string;
   children: ReactNode;
+  className?: string;
 }
 
-export function TabsContent({ value, children }: TabsContentProps) {
+export function TabsContent({ value, children, className }: TabsContentProps) {
   const { value: selected } = useTabs();
   if (selected !== value) return null;
-  return <div className="py-4">{children}</div>;
+  return <div className={cn('py-4', className)}>{children}</div>;
 }
