@@ -48,9 +48,11 @@ def _extension_from_content_type(content_type):
 def _prompt():
     return getattr(settings, 'AI_IMAGE_PROMPT', (
         "Clean up this image for printing on a white ceramic mug. Remove the background, "
-        "keep only the main subject, center it, make colors vibrant, and ensure a clean "
-        "transparent or white background suitable for sublimation printing. Preserve the "
-        "original subject faithfully."
+        "keep only the main subject, and rearrange it into a horizontal panoramic composition "
+        "that fills a wide print area. The design should stretch across the width of the mug, "
+        "with the main elements distributed horizontally rather than stacked vertically. "
+        "Make colors vibrant and ensure a clean transparent or white background suitable for "
+        "sublimation printing. Preserve the original subject faithfully."
     ))
 
 

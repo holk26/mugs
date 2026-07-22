@@ -178,5 +178,48 @@ def test_postprocess_image_centered():
     source.save(buffer, format='PNG')
     out_bytes, _ = postprocess_image(buffer.getvalue(), specs)
     img = Image.open(io.BytesIO(out_bytes))
-    # The resized red square should be centered; verify non-white/red pixels exist.
+    # The resized red square should fill the width; verify non-white/red pixels exist.
     assert any(pixel != (255, 255, 255) for pixel in img.get_flattened_data())
+
+
+def test_postprocess_fills_width_with_vertical_crop():
+    """A square image should fill the full width and be cropped vertically."""
+    specs = {
+        'width_mm': 240,
+        'height_mm': 92,
+        'dpi': 300,
+        'background': 'white',
+        'format': 'png',
+    }
+    # Target: 2835x1087. A 1000x1000 source becomes 2835x2835, cropped to 2835x1087.
+    source = Image.new('RGB', (1000, 1000), color=(255, 0, 0))
+    buffer = io.BytesIO()
+    source.save(buffer, format='PNG')
+    out_bytes, _ = postprocess_image(buffer.getvalue(), specs)
+    img = Image.open(io.BytesIO(out_bytes))
+    assert img.size == (2835, 1087)
+    # The full canvas should be red (no white margins).
+    assert all(pixel == (255, 0, 0) for pixel in img.get_flattened_data())
+
+
+def test_postprocess_fills_width_and_centers_short_image():
+    """A very wide image should fill the width and be centered vertically."""
+    specs = {
+        'width_mm': 240,
+        'height_mm': 92,
+        'dpi': 300,
+        'background': 'white',
+        'format': 'png',
+    }
+    # Target: 2835x1087. A 2000x500 source becomes 2835x709, centered vertically.
+    source = Image.new('RGB', (2000, 500), color=(255, 0, 0))
+    buffer = io.BytesIO()
+    source.save(buffer, format='PNG')
+    out_bytes, _ = postprocess_image(buffer.getvalue(), specs)
+    img = Image.open(io.BytesIO(out_bytes))
+    assert img.size == (2835, 1087)
+    # Top and bottom bands should be white; the center band should be red.
+    center_y = img.height // 2
+    assert img.getpixel((img.width // 2, center_y)) == (255, 0, 0)
+    assert img.getpixel((img.width // 2, 10)) == (255, 255, 255)
+    assert img.getpixel((img.width // 2, img.height - 10)) == (255, 255, 255)
