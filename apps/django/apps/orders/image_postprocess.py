@@ -49,24 +49,19 @@ def postprocess_image(image_bytes: bytes, specs: dict) -> tuple[bytes, str]:
     target_w = _mm_to_px(width_mm, dpi)
     target_h = _mm_to_px(height_mm, dpi)
 
-    # Scale the image to fill the target width (cover), then crop vertically
-    # centered if it exceeds the target height. This produces a wide print file
-    # that uses the full print area instead of leaving large blank margins.
-    src_w, src_h = img.size
-    if src_w == 0 or src_h == 0:
-        raise ImagePostprocessError('Source image has zero width or height')
-
-    scale = target_w / src_w
-    scaled_w = target_w
-    scaled_h = int(round(src_h * scale))
-
-    img = img.resize((scaled_w, scaled_h), Image.Resampling.LANCZOS)
+    # Preserve aspect ratio, fit inside target box. Never crop the design:
+    # losing customer content is worse than leaving blank margins.
+    img.thumbnail((target_w, target_h), Image.Resampling.LANCZOS)
 
     # Build output canvas.
     if background == 'transparent':
         canvas = Image.new('RGBA', (target_w, target_h), (255, 255, 255, 0))
     else:
         canvas = Image.new('RGB', (target_w, target_h), (255, 255, 255))
+
+    # Center the resized image.
+    paste_x = (target_w - img.width) // 2
+    paste_y = (target_h - img.height) // 2
 
     if canvas.mode == 'RGBA':
         if img.mode != 'RGBA':
@@ -80,15 +75,7 @@ def postprocess_image(image_bytes: bytes, specs: dict) -> tuple[bytes, str]:
         elif img.mode != 'RGB':
             img = img.convert('RGB')
 
-    if scaled_h >= target_h:
-        # Crop the vertical overflow, keeping the center of the design.
-        crop_top = (scaled_h - target_h) // 2
-        img = img.crop((0, crop_top, scaled_w, crop_top + target_h))
-        canvas.paste(img, (0, 0))
-    else:
-        # Center vertically when the design does not fill the full height.
-        paste_y = (target_h - scaled_h) // 2
-        canvas.paste(img, (0, paste_y))
+    canvas.paste(img, (paste_x, paste_y))
 
     buffer = io.BytesIO()
     if fmt == 'png':
